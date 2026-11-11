@@ -1,4 +1,4 @@
-name: Build macOS plugin
+name: Build plugin
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  mac:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,3 +51,36 @@ jobs:
           name: Firmament (latest build)
           prerelease: true
           files: dist/Firmament-mac.zip
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build
+
+      - name: Build (Release)
+        run: cmake --build build --config Release --target Firmament_VST3 Firmament_Standalone
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/Firmament | Out-Null
+          Copy-Item -Recurse build/Firmament_artefacts/Release/VST3/Firmament.vst3 dist/Firmament/
+          Copy-Item build/Firmament_artefacts/Release/Standalone/Firmament.exe dist/Firmament/
+          Set-Content dist/Firmament/INSTALL.txt "Copy the Firmament.vst3 folder into C:\Program Files\Common Files\VST3 then rescan plugins in your DAW."
+          Compress-Archive -Path dist/Firmament -DestinationPath dist/Firmament-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Firmament-windows
+          path: dist/Firmament-windows.zip
+
+      - name: Publish to Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-build
+          name: Firmament (latest build)
+          prerelease: true
+          files: dist/Firmament-windows.zip

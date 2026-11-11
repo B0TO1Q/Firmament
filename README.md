@@ -27,7 +27,7 @@ Then restart the DAW and rescan plugins.
     cmake -B build -G Xcode
     cmake --build build --config Release
 
-JUCE 9.0.5 is fetched automatically. Every push to `main` builds the Mac plugin in GitHub Actions.
+JUCE 9.0.5 is fetched automatically. Every push to `main` builds the Mac (VST3 + AU) and Windows (VST3) plugins in GitHub Actions.
 
 ## Layout
 
