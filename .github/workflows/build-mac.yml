@@ -1,0 +1,53 @@
+name: Build macOS plugin
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Engine test
+        run: |
+          clang++ -std=c++17 -O2 -o engine_test Tests/engine_test.cpp
+          ./engine_test
+
+      - name: Configure
+        run: cmake -B build -G Xcode
+
+      - name: Build (universal, Release)
+        run: cmake --build build --config Release --target Firmament_VST3 Firmament_AU Firmament_Standalone
+
+      - name: Package
+        run: |
+          ART=build/Firmament_artefacts/Release
+          mkdir -p dist/Firmament
+          cp -R "$ART/VST3/Firmament.vst3" dist/Firmament/
+          cp -R "$ART/AU/Firmament.component" dist/Firmament/
+          cp -R "$ART/Standalone/Firmament.app" dist/Firmament/
+          cp packaging/Install.command dist/Firmament/
+          chmod +x dist/Firmament/Install.command
+          codesign --force --deep -s - dist/Firmament/Firmament.vst3
+          codesign --force --deep -s - dist/Firmament/Firmament.component
+          codesign --force --deep -s - dist/Firmament/Firmament.app
+          cd dist && ditto -c -k --keepParent Firmament Firmament-mac.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Firmament-mac
+          path: dist/Firmament-mac.zip
+
+      - name: Publish to Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-build
+          name: Firmament (latest build)
+          prerelease: true
+          files: dist/Firmament-mac.zip
