@@ -551,7 +551,7 @@ void SelahEditor::resized()
         knobs[i].setBounds (inset.getX() + 20 + i * kPitch, inset.getY() + 116, kSize, kSize);
 
     eqPanel = { inset.getX(), inset.getBottom() + 14, inset.getWidth(), kEqHeight };
-    eqArea  = { eqPanel.getX() + 176, eqPanel.getY() + 22, eqPanel.getWidth() - 176 - 16, 104 };
+    eqArea  = { eqPanel.getX() + 192, eqPanel.getY() + 22, eqPanel.getWidth() - 192 - 16, 104 };
     for (int m = 0; m < 3; ++m)
     {
         const int nb = eqSliders[m].size();
@@ -562,7 +562,7 @@ void SelahEditor::resized()
     for (int m = 0; m < 3; ++m)
         bandKeys[m]->setBounds (eqPanel.getX() + 16 + m * 40, eqPanel.getY() + 42, 40, 30);
     eqPostSwitch.setBounds (eqPanel.getX() + 22, eqPanel.getY() + 96, 34, 44);
-    flatKey.setBounds (eqPanel.getX() + 112, eqPanel.getY() + 103, 52, 30);
+    flatKey.setBounds (eqPanel.getX() + 108, eqPanel.getY() + 103, 50, 30);
 
     drawer = { inset.getX(), eqPanel.getBottom() + 14, inset.getWidth(), kDrawerHeight - 12 };
     techBox = drawer.reduced (18, 12).withTrimmedRight (270);
