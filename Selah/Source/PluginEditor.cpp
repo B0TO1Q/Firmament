@@ -2,7 +2,7 @@
 
 namespace
 {
-constexpr int kWidth = 940, kHeightClosed = 552, kDrawerHeight = 140;
+constexpr int kWidth = 940, kHeightClosed = 728, kDrawerHeight = 140, kEqHeight = 162;
 
 const char* const knobNames[6] = { "CLEAN UP", "WARMTH", "CLARITY", "EVEN OUT", "SPACE", "VOLUME" };
 const char* const knobHints[6] = {
@@ -210,6 +210,48 @@ void Look::drawRotarySlider (juce::Graphics& g, int x, int y, int w, int h, floa
     g.strokePath (mark, juce::PathStrokeType (1.8f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded), t);
 }
 
+void Look::drawLinearSlider (juce::Graphics& g, int x, int y, int w, int h, float pos, float, float,
+                            juce::Slider::SliderStyle, juce::Slider&)
+{
+    const float cx = (float) x + (float) w * 0.5f;
+    g.setColour (juce::Colours::black);
+    g.fillRoundedRectangle (cx - 2.5f, (float) y - 6.0f, 5.0f, (float) h + 12.0f, 2.5f);
+    g.setColour (juce::Colours::white.withAlpha (0.16f));
+    g.drawRoundedRectangle (cx - 3.0f, (float) y - 6.5f, 6.0f, (float) h + 13.0f, 3.0f, 0.8f);
+
+    const float cw = juce::jmin (18.0f, (float) w - 6.0f), chh = 20.0f;
+    const juce::Rectangle<float> cap (cx - cw * 0.5f, pos - chh * 0.5f, cw, chh);
+    g.setColour (juce::Colours::black.withAlpha (0.55f));
+    g.fillRoundedRectangle (cap.translated (1.0f, 2.5f), 2.5f);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xfffffaea), 0.0f, cap.getY(), juce::Colour (0xffb5a98b), 0.0f, cap.getBottom(), false));
+    g.fillRoundedRectangle (cap, 2.5f);
+    g.setColour (juce::Colour (0xff3b3324).withAlpha (0.8f));
+    g.drawRoundedRectangle (cap, 2.5f, 0.8f);
+    g.setColour (juce::Colour (0xff1c160d));
+    g.fillRect (cap.getX() + 2.0f, cap.getCentreY() - 0.9f, cap.getWidth() - 4.0f, 1.8f);
+}
+
+void TextKey::paintButton (juce::Graphics& g, bool over, bool down)
+{
+    const bool on = getToggleState() || (down && ! getClickingTogglesState() && getRadioGroupId() == 0);
+    auto r = getLocalBounds().toFloat().reduced (3.0f);
+    if (down) r = r.reduced (0.6f);
+    g.setColour (juce::Colours::black.withAlpha (0.8f));
+    g.fillRoundedRectangle (r.expanded (2.0f), 5.0f);
+    if (on)
+    {
+        g.setColour (amber.withAlpha (0.18f));
+        g.fillRoundedRectangle (r.expanded (4.0f), 7.0f);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffffc266), 0.0f, r.getY(), juce::Colour (0xffb8700f), 0.0f, r.getBottom(), false));
+    }
+    else
+        g.setGradientFill (juce::ColourGradient (juce::Colour (over ? 0xfffbf3de : 0xfff1e8d0), 0.0f, r.getY(), juce::Colour (0xffb0a487), 0.0f, r.getBottom(), false));
+    g.fillRoundedRectangle (r, 4.0f);
+    g.setColour (juce::Colour (0xff2a1c08));
+    g.setFont (font (11.5f, true, 0.06f));
+    g.drawText (getButtonText(), getLocalBounds(), juce::Justification::centred);
+}
+
 //------------------------------------------------------------------------------
 SourceButton::SourceButton (int sourceIndex) : juce::Button (sl::sourceName (sourceIndex)), index (sourceIndex) {}
 
@@ -384,6 +426,40 @@ SelahEditor::SelahEditor (SelahProcessor& p) : AudioProcessorEditor (p), proc (p
     advancedSwitch.onClick = [this] { setAdvanced (advancedSwitch.getToggleState()); };
     addAndMakeVisible (advancedSwitch);
 
+    // ---- graphic EQ ---------------------------------------------------------
+    for (int m = 0; m < 3; ++m)
+        for (int b = 0; b < sl::eqBandCount (m); ++b)
+        {
+            auto* sld = eqSliders[m].add (new juce::Slider());
+            sld->setSliderStyle (juce::Slider::LinearVertical);
+            sld->setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+            sld->setPopupDisplayEnabled (true, true, this);
+            addChildComponent (sld);
+            sliderAtts.add (new SliderAtt (proc.apvts, SelahProcessor::eqParamId (m, b), *sld));
+        }
+    for (int m = 0; m < 3; ++m)
+    {
+        auto* key = bandKeys.add (new hw::TextKey (juce::String (sl::eqBandCount (m))));
+        key->setRadioGroupId (2);
+        key->onClick = [this, m] { if (eqModeAtt != nullptr) eqModeAtt->setValueAsCompleteGesture ((float) m); };
+        addAndMakeVisible (key);
+    }
+    flatKey.onClick = [this]
+    {
+        for (auto* sld : eqSliders[eqMode])
+            sld->setValue (0.0, juce::sendNotificationSync);
+    };
+    addAndMakeVisible (flatKey);
+
+    eqPostSwitch.onClick = [this] { if (eqPostAtt != nullptr) eqPostAtt->setValueAsCompleteGesture (eqPostSwitch.getToggleState() ? 1.0f : 0.0f); };
+    addAndMakeVisible (eqPostSwitch);
+    eqPostAtt = std::make_unique<juce::ParameterAttachment> (*proc.apvts.getParameter ("eqpost"),
+                    [this] (float v) { eqPostSwitch.setToggleState (v > 0.5f, juce::dontSendNotification); });
+    eqPostAtt->sendInitialUpdate();
+    eqModeAtt = std::make_unique<juce::ParameterAttachment> (*proc.apvts.getParameter ("eqmode"),
+                    [this] (float v) { eqModeChanged (juce::roundToInt (v)); });
+    eqModeAtt->sendInitialUpdate();
+
     sourceAtt = std::make_unique<juce::ParameterAttachment> (*proc.apvts.getParameter ("source"),
                                                              [this] (float v) { sourceChanged (juce::roundToInt (v)); });
     sourceAtt->sendInitialUpdate();
@@ -409,6 +485,22 @@ void SelahEditor::sourceChanged (int s)
     for (int i = 0; i < sourceButtons.size(); ++i)
         sourceButtons[i]->setToggleState (i == source, juce::dontSendNotification);
     repaint();
+}
+
+void SelahEditor::eqModeChanged (int m)
+{
+    eqMode = juce::jlimit (0, 2, m);
+    for (int i = 0; i < 3; ++i)
+    {
+        bandKeys[i]->setToggleState (i == eqMode, juce::dontSendNotification);
+        for (auto* sld : eqSliders[i])
+            sld->setVisible (i == eqMode);
+    }
+    if (getWidth() > 0)
+    {
+        renderBackground();   // frequency legends are printed on the face
+        repaint();
+    }
 }
 
 void SelahEditor::setAdvanced (bool open)
@@ -458,7 +550,21 @@ void SelahEditor::resized()
     for (int i = 0; i < 6; ++i)
         knobs[i].setBounds (inset.getX() + 20 + i * kPitch, inset.getY() + 116, kSize, kSize);
 
-    drawer = { inset.getX(), inset.getBottom() + 14, inset.getWidth(), kDrawerHeight - 12 };
+    eqPanel = { inset.getX(), inset.getBottom() + 14, inset.getWidth(), kEqHeight };
+    eqArea  = { eqPanel.getX() + 176, eqPanel.getY() + 22, eqPanel.getWidth() - 176 - 16, 104 };
+    for (int m = 0; m < 3; ++m)
+    {
+        const int nb = eqSliders[m].size();
+        const float slot = (float) eqArea.getWidth() / (float) nb;
+        for (int b = 0; b < nb; ++b)
+            eqSliders[m][b]->setBounds (eqArea.getX() + juce::roundToInt (slot * (float) b), eqArea.getY(), juce::roundToInt (slot), eqArea.getHeight());
+    }
+    for (int m = 0; m < 3; ++m)
+        bandKeys[m]->setBounds (eqPanel.getX() + 16 + m * 40, eqPanel.getY() + 42, 40, 30);
+    eqPostSwitch.setBounds (eqPanel.getX() + 22, eqPanel.getY() + 96, 34, 44);
+    flatKey.setBounds (eqPanel.getX() + 112, eqPanel.getY() + 103, 52, 30);
+
+    drawer = { inset.getX(), eqPanel.getBottom() + 14, inset.getWidth(), kDrawerHeight - 12 };
     techBox = drawer.reduced (18, 12).withTrimmedRight (270);
     revLength.setBounds (drawer.getRight() - 250, drawer.getY() + 12, 84, 84);
     limiterSwitch.setBounds (drawer.getRight() - 96, drawer.getY() + 22, 46, 62);
@@ -563,6 +669,36 @@ void SelahEditor::drawFace (juce::Graphics& g)
     g.setColour (cream);
     g.drawText ("TOO LOUD", lampBox.getX() - 6, lampBox.getBottom() - 13, lampBox.getWidth() + 12, 12, juce::Justification::centred);
     g.drawText ("ADVANCED", advancedSwitch.getX() - 20, lampBox.getBottom() - 13, advancedSwitch.getWidth() + 40, 12, juce::Justification::centred);
+
+    // graphic EQ section
+    outline (eqPanel);
+    g.setFont (font (12.0f, true, 0.16f));
+    g.setColour (gold);
+    g.drawText ("GRAPHIC EQ", eqPanel.getX() + 16, eqPanel.getY() + 10, 140, 14, juce::Justification::centredLeft);
+    g.setFont (font (9.5f, true, 0.12f));
+    g.setColour (cream.withAlpha (0.8f));
+    g.drawText ("BANDS", eqPanel.getX() + 16, eqPanel.getY() + 27, 120, 12, juce::Justification::centredLeft);
+    g.drawText ("AFTER", eqPostSwitch.getRight() + 2, eqPostSwitch.getY() + 2, 50, 12, juce::Justification::centredLeft);
+    g.drawText ("BEFORE", eqPostSwitch.getRight() + 2, eqPostSwitch.getBottom() - 14, 50, 12, juce::Justification::centredLeft);
+    {
+        const float top = (float) eqArea.getY() + 10.0f, bottom = (float) eqArea.getBottom() - 10.0f;   // matches the fader travel
+        const char* const marks[3] = { "+12", "0", "-12" };
+        for (int i = 0; i < 3; ++i)
+        {
+            const float y = top + (bottom - top) * (float) i * 0.5f;
+            g.setColour (cream.withAlpha (i == 1 ? 0.45f : 0.22f));
+            g.fillRect ((float) eqArea.getX(), y - 0.5f, (float) eqArea.getWidth(), 1.0f);
+            g.setColour (cream.withAlpha (0.8f));
+            g.drawText (marks[i], eqArea.getX() - 30, juce::roundToInt (y) - 6, 26, 12, juce::Justification::centredRight);
+        }
+        const int nb = sl::eqBandCount (eqMode);
+        const float slot = (float) eqArea.getWidth() / (float) nb;
+        g.setFont (font (nb > 14 ? 8.5f : 10.0f, true, 0.0f));
+        g.setColour (cream.withAlpha (0.9f));
+        for (int b = 0; b < nb; ++b)
+            g.drawText (SelahProcessor::eqFreqText (sl::eqFreq (eqMode, b)), eqArea.getX() + juce::roundToInt (slot * (float) b) - 6,
+                        eqArea.getBottom() + 6, juce::roundToInt (slot) + 12, 12, juce::Justification::centred);
+    }
 
     // jewel lamp bezel
     {

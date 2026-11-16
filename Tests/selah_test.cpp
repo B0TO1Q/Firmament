@@ -57,6 +57,30 @@ int main()
                          10.0 * std::log10 (accIn / cnt), 10.0 * std::log10 (acc / cnt), peak, gr, fail ? "FAIL" : "");
     }
 
+    // 2b. Graphic EQ: every band count, pre and post, full boost and full cut: stable, still zero latency.
+    for (int mode = 0; mode < 3; ++mode)
+    for (int post = 0; post < 2; ++post)
+    for (float gdb : { 12.0f, -12.0f })
+    {
+        ChannelEngine e; e.prepare (sr);
+        Params p; p.source = LeadVocal; p.eqMode = mode; p.eqPost = post != 0;
+        for (int b = 0; b < eqBandCount (mode); ++b) p.eqGain[b] = gdb;
+        e.setParams (p);
+        float peak = 0; bool bad = false; double acc = 0; long cnt = 0;
+        for (int b = 0; b < 300; ++b)
+        {
+            for (int i = 0; i < block; ++i) { L[(size_t) i] = 0.1f * u (rng); R[(size_t) i] = 0.1f * u (rng); }
+            const float first = L[0];
+            e.process (L.data(), R.data(), block);
+            if (b == 0 && std::abs (L[0]) < std::abs (first) * 0.05f) bad = true;   // delayed output
+            for (int i = 0; i < block; ++i) { const float a = std::abs (L[(size_t) i]); if (! std::isfinite (a)) bad = true; peak = std::max (peak, a); acc += a * a; ++cnt; }
+        }
+        const bool fail = bad || peak > 0.8915f;
+        fails += fail;
+        std::printf ("EQ %2d bands %-4s %+3.0f dB  out=%5.1f dB peak=%.3f %s\n", eqBandCount (mode), post ? "post" : "pre", gdb,
+                     10.0 * std::log10 (acc / (double) cnt), peak, fail ? "FAIL" : "");
+    }
+
     // 3. Limiter off must pass audio untouched in level terms (no clamp), and silence in = silence out.
     {
         ChannelEngine e; e.prepare (sr);

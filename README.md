@@ -35,6 +35,8 @@ Church channel strip (working title). Zero added delay, so it works live in the 
 | Space | Room sound | Firmament reverb, mode picked per source |
 | Volume | Final loudness | Output gain and a safety limiter (TOO LOUD light) |
 
+Underneath is a graphic EQ: 7, 14 or 21 bands (+/-12 dB each), a switch to place it before or after the channel processing, and a FLAT key.
+
 The ADVANCED switch opens a drawer showing the real numbers behind each knob, plus Reverb Length and the Safety Limiter switch.
 
 ## Install (Mac)

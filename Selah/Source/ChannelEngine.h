@@ -58,7 +58,23 @@ struct Params
     // Advanced
     float reverbLength = 0.5f;   // 0.5 = the source's default
     bool  limiter      = true;
+    // Graphic EQ
+    int   eqMode = 0;            // 0 = 7 bands, 1 = 14, 2 = 21
+    float eqGain[21] = {};       // dB, -12..+12, for the bands of the current mode
+    bool  eqPost = false;        // false = before the channel processing, true = after it
 };
+
+constexpr int kMaxEqBands = 21;
+inline int eqBandCount (int mode) { return mode <= 0 ? 7 : (mode == 1 ? 14 : 21); }
+inline float eqFreq (int mode, int band)
+{
+    static const float f7[7]   = { 63, 160, 400, 1000, 2500, 6300, 16000 };
+    static const float f14[14] = { 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000 };
+    static const float f21[21] = { 20, 28, 40, 56, 80, 112, 160, 224, 315, 450, 630, 900, 1250, 1800, 2500, 3500, 5000, 7000, 10000, 14000, 20000 };
+    band = std::clamp (band, 0, eqBandCount (mode) - 1);
+    return mode <= 0 ? f7[band] : (mode == 1 ? f14[band] : f21[band]);
+}
+inline float eqQ (int mode) { return mode <= 0 ? 1.05f : (mode == 1 ? 2.15f : 2.87f); }
 
 // What the plain-English knobs are doing, for the Advanced read-out.
 struct Tech { float hpHz, deEssDb, gateThrDb, warmDb, mudDb, presDb, airDb, thrDb, ratio, revSeconds; };
@@ -152,6 +168,7 @@ public:
         gateEnv = 0; gateGain = 1;
         compGr = 0; limGain = 1;
         first = true;
+        eqLastMode = -1;
         meterOut = 0.0f; meterGr = 0.0f; meterLimit = 0.0f;
     }
 
@@ -178,6 +195,33 @@ private:
         if (first) { for (int i = 0; i < 6; ++i) sm[i] = tgt[i]; first = false; }
         const float k = 1.0f - std::exp (-(float) n / (0.03f * sr));   // 30 ms knob smoothing
         for (int i = 0; i < 6; ++i) sm[i] += k * (tgt[i] - sm[i]);
+
+        // ---- graphic EQ set-up ------------------------------------------------
+        const int eqMode = std::clamp (p.eqMode, 0, 2);
+        const int nb = eqBandCount (eqMode);
+        if (eqMode != eqLastMode)
+        {
+            for (int b = 0; b < kMaxEqBands; ++b) { eq[b].reset(); eqSm[b] = b < nb ? std::clamp (p.eqGain[b], -12.0f, 12.0f) : 0.0f; eqCoef[b] = 999.0f; }
+            eqLastMode = eqMode;
+        }
+        for (int b = 0; b < nb; ++b)
+        {
+            eqSm[b] += k * (std::clamp (p.eqGain[b], -12.0f, 12.0f) - eqSm[b]);
+            if (std::abs (eqSm[b] - eqCoef[b]) > 0.01f)
+            {
+                eq[b].peak (eqFreq (eqMode, b), eqQ (eqMode), eqSm[b], sr);
+                eqCoef[b] = eqSm[b];
+            }
+        }
+        const auto applyEq = [this, nb, L, R, n]
+        {
+            for (int b = 0; b < nb; ++b)
+            {
+                if (std::abs (eqSm[b]) < 0.02f) continue;
+                for (int i = 0; i < n; ++i) { L[i] = eq[b].process (L[i], 0); R[i] = eq[b].process (R[i], 1); }
+            }
+        };
+        if (! p.eqPost) applyEq();
 
         Params q = p;
         q.cleanUp = sm[0]; q.warmth = sm[1]; q.clarity = sm[2]; q.evenOut = sm[3]; q.space = sm[4];
@@ -312,6 +356,8 @@ private:
             spaceTail = std::max (0, spaceTail - n);
         }
 
+        if (p.eqPost) applyEq();
+
         // ---- Volume + safety limiter (instant attack, no look-ahead) ----------
         for (int i = 0; i < n; ++i)
         {
@@ -342,6 +388,9 @@ private:
     float sm[6] = { 0, 0, 0, 0, 0, 0 };
 
     Biquad hp, warm, mud, pres, air;
+    Biquad eq[kMaxEqBands];
+    float eqSm[kMaxEqBands] = {}, eqCoef[kMaxEqBands] = {};
+    int eqLastMode = -1;
     float essLp[2] = { 0, 0 }, essEnv = 0, fullEnv = 0, essGain = 1;
     float gateEnv = 0, gateGain = 1;
     float compGr = 0, limGain = 1;

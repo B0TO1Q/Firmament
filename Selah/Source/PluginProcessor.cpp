@@ -30,7 +30,25 @@ juce::AudioProcessorValueTreeState::ParameterLayout SelahProcessor::createLayout
                 .withValueFromStringFunction ([] (const juce::String& s) { return s.getFloatValue(); })));
     l.add (std::make_unique<APF> (juce::ParameterID { "revlength", 1 }, "Reverb Length", unit, 0.5f, tenAttr()));
     l.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "limiter", 1 }, "Safety Limiter", true));
+
+    l.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { "eqmode", 1 }, "EQ Bands", juce::StringArray { "7", "14", "21" }, 0));
+    l.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { "eqpost", 1 }, "EQ Position", juce::StringArray { "Pre", "Post" }, 0));
+    for (int m = 0; m < 3; ++m)
+        for (int b = 0; b < sl::eqBandCount (m); ++b)
+            l.add (std::make_unique<APF> (juce::ParameterID { eqParamId (m, b), 1 },
+                    "EQ" + juce::String (sl::eqBandCount (m)) + " " + eqFreqText (sl::eqFreq (m, b)),
+                    juce::NormalisableRange<float> (-12.0f, 12.0f, 0.1f), 0.0f,
+                    juce::AudioParameterFloatAttributes()
+                        .withStringFromValueFunction ([] (float v, int) { return (v > 0.05f ? "+" : "") + juce::String (v, 1) + " dB"; })
+                        .withValueFromStringFunction ([] (const juce::String& t) { return t.getFloatValue(); })));
     return l;
+}
+
+juce::String SelahProcessor::eqFreqText (float hz)
+{
+    if (hz < 1000.0f) return juce::String (juce::roundToInt (hz));
+    const float k = hz / 1000.0f;
+    return (std::abs (k - std::round (k)) < 0.01f ? juce::String (juce::roundToInt (k)) : juce::String (k, k * 10.0f - std::floor (k * 10.0f) > 0.01f ? 2 : 1)) + "k";
 }
 
 SelahProcessor::SelahProcessor()
@@ -48,6 +66,11 @@ SelahProcessor::SelahProcessor()
     pVolume  = apvts.getRawParameterValue ("volume");
     pRevLen  = apvts.getRawParameterValue ("revlength");
     pLimiter = apvts.getRawParameterValue ("limiter");
+    pEqMode  = apvts.getRawParameterValue ("eqmode");
+    pEqPost  = apvts.getRawParameterValue ("eqpost");
+    for (int m = 0; m < 3; ++m)
+        for (int b = 0; b < sl::eqBandCount (m); ++b)
+            pEq[m][b] = apvts.getRawParameterValue (eqParamId (m, b));
 }
 
 sl::Params SelahProcessor::readParams() const
@@ -62,6 +85,10 @@ sl::Params SelahProcessor::readParams() const
     p.volumeDb     = pVolume->load();
     p.reverbLength = pRevLen->load();
     p.limiter      = pLimiter->load() > 0.5f;
+    p.eqMode       = juce::jlimit (0, 2, juce::roundToInt (pEqMode->load()));
+    p.eqPost       = pEqPost->load() > 0.5f;
+    for (int b = 0; b < sl::eqBandCount (p.eqMode); ++b)
+        p.eqGain[b] = pEq[p.eqMode][b]->load();
     return p;
 }
 
