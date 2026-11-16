@@ -5,14 +5,15 @@
 namespace hw
 {
 const juce::Colour rack     { 0xff0b0b0c };
-const juce::Colour gold     { 0xffcfa76a };
+const juce::Colour gold     { 0xffd4ac62 };
+const juce::Colour cream    { 0xffece3cb };
 const juce::Colour amber    { 0xfff2a33a };
 const juce::Colour engrave  { 0xffb9b6ae };
 const juce::Colour faint    { 0xff85837d };
 
 juce::Font font (float height, bool bold = true, float kerning = 0.06f);
 
-// Metal knob with knurled edge, amber pointer and a lit value arc.
+// Cream pointer knob with a printed 0-10 scale.
 class Look final : public juce::LookAndFeel_V4
 {
 public:
@@ -20,7 +21,7 @@ public:
                            float startAngle, float endAngle, juce::Slider&) override;
 };
 
-// Square lit push-button with an icon for each kind of source.
+// Ivory push-button with an icon for each kind of source; lights amber when selected.
 class SourceButton final : public juce::Button
 {
 public:
@@ -72,7 +73,7 @@ private:
 
     int source = 0;
     bool advanced = false;
-    float level = 0.0f, gr = 0.0f, limiting = 0.0f;
+    float level = 0.0f, gr = 0.0f, limiting = 0.0f, needleLevel = 0.0f, needleGr = 0.0f;
 
     juce::Image background;
     juce::Rectangle<int> face, inset, ledBox, grBox, lampBox, drawer, techBox;
