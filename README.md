@@ -28,12 +28,16 @@ Church channel strip (working title). Zero added delay, so it works live in the 
 
 | Knob | What it does | Under the hood |
 |------|--------------|----------------|
-| Clean Up | Removes rumble, hiss, harsh S sounds | Low cut, gentle gate, de-esser |
-| Warmth | Body and fullness | Console-preamp style low shelf and transformer saturation |
-| Clarity | Less mud, more presence | Console-EQ style mud cut, presence and air, tuned per source |
-| Even Out | Keeps the level steady | Compressor voiced per source |
-| Space | Room sound | Firmament reverb, mode picked per source |
-| Volume | Final loudness | Output gain and a safety limiter (TOO LOUD light) |
+| Clean Up | Removes rumble, hiss, harsh S sounds | 18 dB/oct low cut, soft gate with hold, band de-esser that only acts while the S band sticks out |
+| Warmth | Body and fullness | Broad low shelf, transformer-style saturation on the low end (third harmonic), a little second harmonic across the band |
+| Clarity | Less mud, more presence | Proportional-Q mud cut and presence bells plus an air shelf, frequencies picked per source |
+| Even Out | Keeps the level steady | Compressor voiced per source: leveler for speech, fast soft-knee with harmonics for vocals and drums, slow-attack bus glue for the full mix; two-stage release; low end kept out of the detector on bass, drums and mix |
+| Space | Room sound | Firmament reverb (16-line network), mode and length per source, filtered send, ducks under speech and lead vocal |
+| Volume | Final loudness | Output gain, then a two-stage safety limiter (smooth leveling plus soft clip) that holds -1 dBFS with no look-ahead |
+
+All of it is zero-latency. Bells are matched to the analogue curve near the top of the range, so 10-20 kHz moves keep their shape at 44.1/48 kHz.
+
+`Tests/selah_measure.cpp` prints bench numbers (EQ accuracy, harmonics, compressor curves and timing, de-esser, limiter, reverb levels, CPU). Every build is also checked with pluginval at strictness 8.
 
 Underneath is a graphic EQ: 7, 14 or 21 bands (+/-12 dB each), a switch to place it before or after the channel processing, and a FLAT key.
 

@@ -3,3 +3,4 @@ dist/
 .DS_Store
 engine_test
 selah_test
+selah_measure

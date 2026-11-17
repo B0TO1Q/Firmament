@@ -99,3 +99,4 @@ target_link_libraries(Selah
 # Engine-only tests (no JUCE): cmake --build build --target engine_test
 add_executable(engine_test EXCLUDE_FROM_ALL Tests/engine_test.cpp)
 add_executable(selah_test EXCLUDE_FROM_ALL Tests/selah_test.cpp)
+add_executable(selah_measure EXCLUDE_FROM_ALL Tests/selah_measure.cpp)

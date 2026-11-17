@@ -153,7 +153,7 @@ inline float coefFor (float hz, float sr) { return 1.0f - std::exp (-2.0f * kPi 
 class ReverbEngine
 {
 public:
-    static constexpr int N = 8;
+    static constexpr int N = 16;   // sixteen delay lines: dense, smooth tails even in small rooms
 
     void prepare (double sampleRate)
     {
@@ -364,12 +364,12 @@ public:
                         const float a = v[j], b = v[j + h];
                         v[j] = a + b; v[j + h] = a - b;
                     }
-            const float norm = 0.35355339f; // 1/sqrt(8)
+            const float norm = 0.25f; // 1/sqrt(16)
             for (int i = 0; i < N; ++i)
                 lines[i].push (v[i] * norm + x[i & 1] * 0.5f);
 
-            float wL = dcBlock[0].hp (outL * 0.5f, cDc);
-            float wR = dcBlock[1].hp (outR * 0.5f, cDc);
+            float wL = dcBlock[0].hp (outL * 0.3536f, cDc);
+            float wR = dcBlock[1].hp (outR * 0.3536f, cDc);
 
             // ---- Ladder feedback voices -------------------------------------
             if (ladder > 0.001f || std::abs (fb[0]) + std::abs (fb[1]) > 1.0e-6f)
@@ -410,10 +410,12 @@ public:
     }
 
 private:
-    static constexpr float baseMs[N]   = { 43.7f, 49.1f, 56.3f, 61.9f, 68.3f, 74.9f, 83.3f, 91.7f };
-    static constexpr float lfoRate[N]  = { 0.31f, 0.47f, 0.59f, 0.71f, 0.83f, 0.97f, 1.09f, 1.21f };
-    static constexpr float outSignL[N] = {  1, 0, -1, 0,  1, 0, -1, 0 };
-    static constexpr float outSignR[N] = {  0, 1,  0, -1, 0, 1,  0, -1 };
+    static constexpr float baseMs[N]   = { 29.3f, 33.1f, 37.9f, 41.7f, 46.3f, 50.9f, 55.7f, 59.3f,
+                                           64.1f, 68.9f, 73.3f, 77.9f, 82.7f, 87.1f, 91.9f, 97.3f };
+    static constexpr float lfoRate[N]  = { 0.31f, 0.47f, 0.59f, 0.71f, 0.83f, 0.97f, 1.09f, 1.21f,
+                                           0.37f, 0.53f, 0.67f, 0.79f, 0.89f, 1.03f, 1.13f, 1.27f };
+    static constexpr float outSignL[N] = {  1, 0, -1, 0,  1, 0, -1, 0,   1, 0,  1, 0, -1, 0, -1, 0 };
+    static constexpr float outSignR[N] = {  0, 1,  0, -1, 0, 1,  0, -1,  0, 1,  0, 1,  0, -1, 0, -1 };
     static constexpr float diffMs[2][4] = { { 4.71f, 7.33f, 11.13f, 13.69f }, { 5.03f, 7.79f, 10.61f, 14.23f } };
     static constexpr float hazeMs[2][2] = { { 25.3f, 37.1f }, { 27.7f, 35.3f } };
 

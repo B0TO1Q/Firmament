@@ -18,6 +18,7 @@ jobs:
         run: |
           clang++ -std=c++17 -O2 -o engine_test Tests/engine_test.cpp && ./engine_test
           clang++ -std=c++17 -O2 -o selah_test Tests/selah_test.cpp && ./selah_test
+          clang++ -std=c++17 -O2 -o selah_measure Tests/selah_measure.cpp && ./selah_measure
 
       - name: Configure
         run: cmake -B build -G Xcode
@@ -40,6 +41,21 @@ jobs:
             codesign --force --deep -s - dist/$P/$P.component
             codesign --force --deep -s - dist/$P/$P.app
             (cd dist && ditto -c -k --keepParent $P $P-mac.zip)
+          done
+
+      - name: Validate with pluginval (VST3 and AU)
+        run: |
+          curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+          unzip -q pluginval.zip
+          PV=pluginval.app/Contents/MacOS/pluginval
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          for P in Firmament Selah; do
+            cp -R dist/$P/$P.component ~/Library/Audio/Plug-Ins/Components/
+          done
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+          for P in Firmament Selah; do
+            $PV --strictness-level 8 --validate-in-process --timeout-ms 180000 --validate dist/$P/$P.vst3
+            $PV --strictness-level 8 --validate-in-process --timeout-ms 180000 --validate ~/Library/Audio/Plug-Ins/Components/$P.component
           done
 
       - uses: actions/upload-artifact@v4
@@ -75,6 +91,16 @@ jobs:
             Copy-Item "build/${P}_artefacts/Release/Standalone/$P.exe" "dist/$P/"
             Set-Content "dist/$P/INSTALL.txt" "Copy the $P.vst3 folder into C:\Program Files\Common Files\VST3 then rescan plugins in your DAW."
             Compress-Archive -Path "dist/$P" -DestinationPath "dist/$P-windows.zip"
+          }
+
+      - name: Validate with pluginval (VST3)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval.zip
+          Expand-Archive pluginval.zip -DestinationPath pv
+          foreach ($P in "Firmament", "Selah") {
+            & ./pv/pluginval.exe --strictness-level 8 --validate-in-process --timeout-ms 180000 --validate "dist/$P/$P.vst3"
+            if ($LASTEXITCODE -ne 0) { exit 1 }
           }
 
       - uses: actions/upload-artifact@v4
