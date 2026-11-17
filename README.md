@@ -23,7 +23,7 @@ Church channel strip (working title). Zero added delay, so it works live in the 
 
 ![Selah interface](docs/selah-ui.png)
 
-1. Pick what is on the channel: Pastor Mic, Lead Vocal, Choir, Acoustic Guitar, Electric Guitar, Bass, Keys, Drums, Full Mix.
+1. Pick what is on the channel: Speaker Mic, Lead Vocal, Choir, Acoustic Guitar, Electric Guitar, Bass, Keys, Drums, Full Mix.
 2. Turn up only what you need. Every knob all the way down is off.
 
 | Knob | What it does | Under the hood |

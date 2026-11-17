@@ -12,7 +12,7 @@ enum Source { Pastor = 0, LeadVocal, Choir, Acoustic, Electric, Bass, Keys, Drum
 
 inline const char* sourceName (int s)
 {
-    static const char* n[] = { "PASTOR", "LEAD VOCAL", "CHOIR", "ACOUSTIC", "ELECTRIC", "BASS", "KEYS", "DRUMS", "FULL MIX" };
+    static const char* n[] = { "SPEAKER", "LEAD VOCAL", "CHOIR", "ACOUSTIC", "ELECTRIC", "BASS", "KEYS", "DRUMS", "FULL MIX" };
     return n[std::clamp (s, 0, kNumSources - 1)];
 }
 

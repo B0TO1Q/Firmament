@@ -14,7 +14,7 @@ const char* const knobHints[6] = {
     "Final\nloudness",
 };
 const char* const sourceLabels[sl::kNumSources] = {
-    "Pastor\nMic", "Lead\nVocal", "Choir", "Acoustic\nGuitar", "Electric\nGuitar", "Bass", "Keys", "Drums", "Full\nMix"
+    "Speaker\nMic", "Lead\nVocal", "Choir", "Acoustic\nGuitar", "Electric\nGuitar", "Bass", "Keys", "Drums", "Full\nMix"
 };
 
 void drawScrew (juce::Graphics& g, float cx, float cy, float r)
@@ -531,26 +531,32 @@ void SelahEditor::resized()
     const int H = getHeight();
     face = { 58, 14, kWidth - 116, H - 28 };
 
-    // nine source buttons across the faceplate
-    const int bs = 66;
-    const int pitch = (face.getWidth() - 48 - bs) / (sl::kNumSources - 1);
-    for (int i = 0; i < sourceButtons.size(); ++i)
-        sourceButtons[i]->setBounds (face.getX() + 24 + i * pitch, 96, bs, bs);
-
     inset = { face.getX() + 22, 208, face.getWidth() - 44, 300 };
-    ledBox  = { inset.getX() + 22, inset.getY() + 16, 300, 92 };
-    grBox   = { ledBox.getRight() + 16, ledBox.getY(), 210, 92 };
-    lampBox = { grBox.getRight() + 12, ledBox.getY() + 12, 68, 68 };
-    stereoSwitch.setBounds (lampBox.getRight() + 18, ledBox.getY() + 20, 36, 42);
-    advancedSwitch.setBounds (inset.getRight() - 20 - 40, ledBox.getY() + 10, 40, 50);
 
+    // nine source buttons, outer edges lined up with the panel below
+    const int bs = 66;
+    const float pitch = (float) (inset.getWidth() + 4 - bs) / (float) (sl::kNumSources - 1);
+    for (int i = 0; i < sourceButtons.size(); ++i)
+        sourceButtons[i]->setBounds (inset.getX() - 2 + juce::roundToInt (pitch * (float) i), 96, bs, bs);
+
+    // meter row: two meters, then three equal cells for the lamp and switches
+    const int pad = 20;
+    ledBox = { inset.getX() + pad, inset.getY() + 16, 300, 92 };
+    grBox  = { ledBox.getRight() + 16, ledBox.getY(), 210, 92 };
+    const int cellsX = grBox.getRight() + 8;
+    const int cellW = (inset.getRight() - pad + 8 - cellsX) / 3;
+    lampBox = { cellsX, ledBox.getY() + 8, cellW, 76 };
+    stereoSwitch.setBounds (cellsX + cellW + (cellW - 36) / 2, ledBox.getY() + 23, 36, 44);
+    advancedSwitch.setBounds (cellsX + 2 * cellW + (cellW - 36) / 2, ledBox.getY() + 23, 36, 44);
+
+    // six knobs in six equal columns
     const int kSize = 118;
-    const int kPitch = (inset.getWidth() - 40 - kSize) / 5;
+    const float col = (float) (inset.getWidth() - 2 * pad) / 6.0f;
     for (int i = 0; i < 6; ++i)
-        knobs[i].setBounds (inset.getX() + 20 + i * kPitch, inset.getY() + 116, kSize, kSize);
+        knobs[i].setBounds (inset.getX() + pad + juce::roundToInt (col * ((float) i + 0.5f)) - kSize / 2, inset.getY() + 116, kSize, kSize);
 
     eqPanel = { inset.getX(), inset.getBottom() + 14, inset.getWidth(), kEqHeight };
-    eqArea  = { eqPanel.getX() + 192, eqPanel.getY() + 22, eqPanel.getWidth() - 192 - 16, 104 };
+    eqArea  = { eqPanel.getX() + 196, eqPanel.getY() + 22, eqPanel.getWidth() - 196 - 20, 104 };
     for (int m = 0; m < 3; ++m)
     {
         const int nb = eqSliders[m].size();
@@ -559,9 +565,9 @@ void SelahEditor::resized()
             eqSliders[m][b]->setBounds (eqArea.getX() + juce::roundToInt (slot * (float) b), eqArea.getY(), juce::roundToInt (slot), eqArea.getHeight());
     }
     for (int m = 0; m < 3; ++m)
-        bandKeys[m]->setBounds (eqPanel.getX() + 16 + m * 40, eqPanel.getY() + 42, 40, 30);
-    eqPostSwitch.setBounds (eqPanel.getX() + 22, eqPanel.getY() + 96, 34, 44);
-    flatKey.setBounds (eqPanel.getX() + 108, eqPanel.getY() + 103, 50, 30);
+        bandKeys[m]->setBounds (eqPanel.getX() + 17 + m * 42, eqPanel.getY() + 42, 42, 30);
+    eqPostSwitch.setBounds (eqPanel.getX() + 20, eqPanel.getY() + 94, 34, 44);
+    flatKey.setBounds (eqPanel.getX() + 106, eqPanel.getY() + 101, 48, 30);
 
     drawer = { inset.getX(), eqPanel.getBottom() + 14, inset.getWidth(), kDrawerHeight - 12 };
     techBox = drawer.reduced (18, 12).withTrimmedRight (270);
@@ -612,25 +618,18 @@ void SelahEditor::drawFace (juce::Graphics& g)
     g.setColour (juce::Colours::white.withAlpha (0.12f));
     g.drawRoundedRectangle (f, 5.0f, 1.0f);
     g.setColour (cream.withAlpha (0.55f));
-    g.drawRoundedRectangle (f.reduced (7.0f), 4.0f, 1.0f);
+    g.drawRoundedRectangle (f.reduced (4.0f), 4.0f, 1.0f);
 
     // nameplate
     const juce::Font serif (juce::FontOptions (juce::Font::getDefaultSerifFontName(), 50.0f, juce::Font::bold | juce::Font::italic));
     g.setFont (serif);
     g.setColour (juce::Colours::black.withAlpha (0.8f));
-    g.drawText ("Selah", face.getX() + 32, 22, 300, 52, juce::Justification::centredLeft);
+    g.drawText ("Selah", inset.getX() + 2, 22, 300, 52, juce::Justification::centredLeft);
     g.setColour (gold);
-    g.drawText ("Selah", face.getX() + 30, 20, 300, 52, juce::Justification::centredLeft);
+    g.drawText ("Selah", inset.getX(), 20, 300, 52, juce::Justification::centredLeft);
     g.setFont (font (11.0f, true, 0.28f));
     g.setColour (cream.withAlpha (0.85f));
-    g.drawText ("SOUND THAT SERVES", face.getX() + 33, 70, 300, 14, juce::Justification::centredLeft);
-
-    g.setFont (font (10.5f, true, 0.18f));
-    g.setColour (gold.withAlpha (0.9f));
-    g.drawText ("CHURCH CHANNEL  -  ZERO DELAY", face.getRight() - 340, 28, 310, 14, juce::Justification::centredRight);
-    g.setColour (cream.withAlpha (0.75f));
-    g.drawText ("1  PICK WHAT IS ON THIS CHANNEL", face.getRight() - 340, 48, 310, 14, juce::Justification::centredRight);
-    g.drawText ("2  TURN UP ONLY WHAT YOU NEED", face.getRight() - 340, 64, 310, 14, juce::Justification::centredRight);
+    g.drawText ("SOUND THAT SERVES", inset.getX() + 3, 70, 300, 14, juce::Justification::centredLeft);
 
     // source labels
     g.setFont (font (12.0f, false, 0.02f));
@@ -666,21 +665,21 @@ void SelahEditor::drawFace (juce::Graphics& g)
 
     g.setFont (font (10.0f, true, 0.12f));
     g.setColour (cream);
-    g.drawText ("TOO LOUD", lampBox.getX() - 6, lampBox.getBottom() - 13, lampBox.getWidth() + 12, 12, juce::Justification::centred);
-    g.drawText ("ADVANCED", advancedSwitch.getX() - 20, lampBox.getBottom() - 13, advancedSwitch.getWidth() + 40, 12, juce::Justification::centred);
+    g.drawText ("TOO LOUD", lampBox.getX() - 6, lampBox.getBottom() - 12, lampBox.getWidth() + 12, 12, juce::Justification::centred);
+    g.drawText ("ADVANCED", advancedSwitch.getX() - 20, lampBox.getBottom() - 12, advancedSwitch.getWidth() + 40, 12, juce::Justification::centred);
     g.drawText ("STEREO", stereoSwitch.getX() - 20, stereoSwitch.getY() - 15, stereoSwitch.getWidth() + 40, 12, juce::Justification::centred);
-    g.drawText ("MONO", stereoSwitch.getX() - 20, lampBox.getBottom() - 13, stereoSwitch.getWidth() + 40, 12, juce::Justification::centred);
+    g.drawText ("MONO", stereoSwitch.getX() - 20, lampBox.getBottom() - 12, stereoSwitch.getWidth() + 40, 12, juce::Justification::centred);
 
     // graphic EQ section
     outline (eqPanel);
     g.setFont (font (12.0f, true, 0.16f));
     g.setColour (gold);
-    g.drawText ("GRAPHIC EQ", eqPanel.getX() + 16, eqPanel.getY() + 10, 140, 14, juce::Justification::centredLeft);
+    g.drawText ("GRAPHIC EQ", eqPanel.getX() + 20, eqPanel.getY() + 10, 140, 14, juce::Justification::centredLeft);
     g.setFont (font (9.5f, true, 0.12f));
     g.setColour (cream.withAlpha (0.8f));
-    g.drawText ("BANDS", eqPanel.getX() + 16, eqPanel.getY() + 27, 120, 12, juce::Justification::centredLeft);
-    g.drawText ("AFTER", eqPostSwitch.getRight() + 2, eqPostSwitch.getY() + 2, 50, 12, juce::Justification::centredLeft);
-    g.drawText ("BEFORE", eqPostSwitch.getRight() + 2, eqPostSwitch.getBottom() - 14, 50, 12, juce::Justification::centredLeft);
+    g.drawText ("BANDS", eqPanel.getX() + 20, eqPanel.getY() + 27, 120, 12, juce::Justification::centredLeft);
+    g.drawText ("AFTER", eqPostSwitch.getRight() + 3, eqPostSwitch.getY() + 4, 50, 12, juce::Justification::centredLeft);
+    g.drawText ("BEFORE", eqPostSwitch.getRight() + 3, eqPostSwitch.getBottom() - 16, 50, 12, juce::Justification::centredLeft);
     {
         const float top = (float) eqArea.getY() + 10.0f, bottom = (float) eqArea.getBottom() - 10.0f;   // matches the fader travel
         const char* const marks[3] = { "+12", "0", "-12" };
@@ -703,7 +702,7 @@ void SelahEditor::drawFace (juce::Graphics& g)
 
     // jewel lamp bezel
     {
-        const auto c = lampBox.toFloat().withTrimmedBottom (18.0f).getCentre();
+        const auto c = juce::Point<float> ((float) lampBox.getCentreX(), (float) stereoSwitch.getBounds().getCentreY());
         const float r = 16.0f;
         g.setGradientFill (juce::ColourGradient (juce::Colour (0xffe6e7e9), c.x - r, c.y - r, juce::Colour (0xff4a4c4f), c.x + r, c.y + r, false));
         g.fillEllipse (c.x - r, c.y - r, r * 2.0f, r * 2.0f);
@@ -712,10 +711,10 @@ void SelahEditor::drawFace (juce::Graphics& g)
     }
 
     // faceplate screws
-    drawScrew (g, f.getX() + 18.0f, f.getY() + 18.0f, 5.5f);
-    drawScrew (g, f.getRight() - 18.0f, f.getY() + 18.0f, 5.5f);
-    drawScrew (g, f.getX() + 18.0f, f.getBottom() - 18.0f, 5.5f);
-    drawScrew (g, f.getRight() - 18.0f, f.getBottom() - 18.0f, 5.5f);
+    drawScrew (g, f.getX() + 14.0f, f.getY() + 14.0f, 5.5f);
+    drawScrew (g, f.getRight() - 14.0f, f.getY() + 14.0f, 5.5f);
+    drawScrew (g, f.getX() + 14.0f, f.getBottom() - 14.0f, 5.5f);
+    drawScrew (g, f.getRight() - 14.0f, f.getBottom() - 14.0f, 5.5f);
 
     if (advanced)
     {
@@ -738,7 +737,7 @@ void SelahEditor::paint (juce::Graphics& g)
     // TOO LOUD jewel
     {
         const bool hot = limiting > 0.05f;
-        const auto c = lampBox.toFloat().withTrimmedBottom (18.0f).getCentre();
+        const auto c = juce::Point<float> ((float) lampBox.getCentreX(), (float) stereoSwitch.getBounds().getCentreY());
         const float r = 11.0f;
         if (hot)
         {

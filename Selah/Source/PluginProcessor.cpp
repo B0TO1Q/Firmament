@@ -16,7 +16,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout SelahProcessor::createLayout
     juce::AudioProcessorValueTreeState::ParameterLayout l;
     const juce::NormalisableRange<float> unit (0.0f, 1.0f, 0.001f);
 
-    juce::StringArray sources { "Pastor", "Lead Vocal", "Choir", "Acoustic Guitar", "Electric Guitar", "Bass", "Keys", "Drums", "Full Mix" };
+    juce::StringArray sources { "Speaker Mic", "Lead Vocal", "Choir", "Acoustic Guitar", "Electric Guitar", "Bass", "Keys", "Drums", "Full Mix" };
     l.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { "source", 1 }, "Source", sources, 0));
     l.add (std::make_unique<APF> (juce::ParameterID { "cleanup", 1 }, "Clean Up", unit, 0.5f, tenAttr()));
     l.add (std::make_unique<APF> (juce::ParameterID { "warmth", 1 }, "Warmth", unit, 0.3f, tenAttr()));
