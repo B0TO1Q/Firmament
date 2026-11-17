@@ -77,10 +77,10 @@ jobs:
         run: |
           V=$(tr -d '[:space:]' < packaging/SELAH_VERSION)
           echo "tag=selah-v$V" >> "$GITHUB_OUTPUT"
-          # publish if this version has no tag yet, or the tag was just made by this same build
-          # (the Mac and Windows jobs both attach their zip to one release)
+          # publish if this version has no release yet, or its release is still missing this platform's zip
           T=$(git ls-remote --tags origin "refs/tags/selah-v$V" | cut -f1)
-          if [ -z "$T" ] || [ "$T" = "$GITHUB_SHA" ]; then
+          URL="https://github.com/${{ github.repository }}/releases/download/selah-v$V/Selah-mac.zip"
+          if [ -z "$T" ] || [ "$T" = "$GITHUB_SHA" ] || ! curl -sfIL -o /dev/null "$URL"; then
             echo "new=true" >> "$GITHUB_OUTPUT"
           else
             echo "new=false" >> "$GITHUB_OUTPUT"
@@ -151,10 +151,10 @@ jobs:
         run: |
           V=$(tr -d '[:space:]' < packaging/SELAH_VERSION)
           echo "tag=selah-v$V" >> "$GITHUB_OUTPUT"
-          # publish if this version has no tag yet, or the tag was just made by this same build
-          # (the Mac and Windows jobs both attach their zip to one release)
+          # publish if this version has no release yet, or its release is still missing this platform's zip
           T=$(git ls-remote --tags origin "refs/tags/selah-v$V" | cut -f1)
-          if [ -z "$T" ] || [ "$T" = "$GITHUB_SHA" ]; then
+          URL="https://github.com/${{ github.repository }}/releases/download/selah-v$V/Selah-windows.zip"
+          if [ -z "$T" ] || [ "$T" = "$GITHUB_SHA" ] || ! curl -sfIL -o /dev/null "$URL"; then
             echo "new=true" >> "$GITHUB_OUTPUT"
           else
             echo "new=false" >> "$GITHUB_OUTPUT"
