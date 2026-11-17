@@ -448,6 +448,12 @@ SelahEditor::SelahEditor (SelahProcessor& p) : AudioProcessorEditor (p), proc (p
     eqPostAtt = std::make_unique<juce::ParameterAttachment> (*proc.apvts.getParameter ("eqpost"),
                     [this] (float v) { eqPostSwitch.setToggleState (v > 0.5f, juce::dontSendNotification); });
     eqPostAtt->sendInitialUpdate();
+    stereoSwitch.onClick = [this] { if (widthAtt != nullptr) widthAtt->setValueAsCompleteGesture (stereoSwitch.getToggleState() ? 1.0f : 0.0f); };
+    addAndMakeVisible (stereoSwitch);
+    widthAtt = std::make_unique<juce::ParameterAttachment> (*proc.apvts.getParameter ("width"),
+                    [this] (float v) { stereoSwitch.setToggleState (v > 0.5f, juce::dontSendNotification); });
+    widthAtt->sendInitialUpdate();
+
     eqModeAtt = std::make_unique<juce::ParameterAttachment> (*proc.apvts.getParameter ("eqmode"),
                     [this] (float v) { eqModeChanged (juce::roundToInt (v)); });
     eqModeAtt->sendInitialUpdate();
@@ -534,8 +540,9 @@ void SelahEditor::resized()
     inset = { face.getX() + 22, 208, face.getWidth() - 44, 300 };
     ledBox  = { inset.getX() + 22, inset.getY() + 16, 300, 92 };
     grBox   = { ledBox.getRight() + 16, ledBox.getY(), 210, 92 };
-    lampBox = { grBox.getRight() + 26, ledBox.getY() + 12, 76, 68 };
-    advancedSwitch.setBounds (inset.getRight() - 24 - 46, ledBox.getY() + 10, 40, 50);
+    lampBox = { grBox.getRight() + 12, ledBox.getY() + 12, 68, 68 };
+    stereoSwitch.setBounds (lampBox.getRight() + 18, ledBox.getY() + 20, 36, 42);
+    advancedSwitch.setBounds (inset.getRight() - 20 - 40, ledBox.getY() + 10, 40, 50);
 
     const int kSize = 118;
     const int kPitch = (inset.getWidth() - 40 - kSize) / 5;
@@ -661,6 +668,8 @@ void SelahEditor::drawFace (juce::Graphics& g)
     g.setColour (cream);
     g.drawText ("TOO LOUD", lampBox.getX() - 6, lampBox.getBottom() - 13, lampBox.getWidth() + 12, 12, juce::Justification::centred);
     g.drawText ("ADVANCED", advancedSwitch.getX() - 20, lampBox.getBottom() - 13, advancedSwitch.getWidth() + 40, 12, juce::Justification::centred);
+    g.drawText ("STEREO", stereoSwitch.getX() - 20, stereoSwitch.getY() - 15, stereoSwitch.getWidth() + 40, 12, juce::Justification::centred);
+    g.drawText ("MONO", stereoSwitch.getX() - 20, lampBox.getBottom() - 13, stereoSwitch.getWidth() + 40, 12, juce::Justification::centred);
 
     // graphic EQ section
     outline (eqPanel);

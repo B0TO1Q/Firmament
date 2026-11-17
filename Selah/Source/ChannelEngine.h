@@ -58,6 +58,7 @@ struct Params
     // Advanced
     float reverbLength = 0.5f;   // 0.5 = the source's default
     bool  limiter      = true;
+    bool  mono         = false;  // true = fold to mono in and out (same signal on both sides)
     // Graphic EQ
     int   eqMode = 0;            // 0 = 7 bands, 1 = 14, 2 = 21
     float eqGain[21] = {};       // dB, -12..+12, for the bands of the current mode
@@ -221,6 +222,9 @@ private:
                 for (int i = 0; i < n; ++i) { L[i] = eq[b].process (L[i], 0); R[i] = eq[b].process (R[i], 1); }
             }
         };
+        if (p.mono)
+            for (int i = 0; i < n; ++i) { const float m = 0.5f * (L[i] + R[i]); L[i] = m; R[i] = m; }
+
         if (! p.eqPost) applyEq();
 
         Params q = p;
@@ -357,6 +361,9 @@ private:
         }
 
         if (p.eqPost) applyEq();
+
+        if (p.mono)   // the reverb is stereo, so fold again after it
+            for (int i = 0; i < n; ++i) { const float m = 0.5f * (L[i] + R[i]); L[i] = m; R[i] = m; }
 
         // ---- Volume + safety limiter (instant attack, no look-ahead) ----------
         for (int i = 0; i < n; ++i)

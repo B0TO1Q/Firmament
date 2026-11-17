@@ -31,6 +31,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout SelahProcessor::createLayout
     l.add (std::make_unique<APF> (juce::ParameterID { "revlength", 1 }, "Reverb Length", unit, 0.5f, tenAttr()));
     l.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "limiter", 1 }, "Safety Limiter", true));
 
+    l.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { "width", 1 }, "Mono / Stereo", juce::StringArray { "Mono", "Stereo" }, 1));
     l.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { "eqmode", 1 }, "EQ Bands", juce::StringArray { "7", "14", "21" }, 0));
     l.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { "eqpost", 1 }, "EQ Position", juce::StringArray { "Pre", "Post" }, 0));
     for (int m = 0; m < 3; ++m)
@@ -68,6 +69,7 @@ SelahProcessor::SelahProcessor()
     pLimiter = apvts.getRawParameterValue ("limiter");
     pEqMode  = apvts.getRawParameterValue ("eqmode");
     pEqPost  = apvts.getRawParameterValue ("eqpost");
+    pWidth   = apvts.getRawParameterValue ("width");
     for (int m = 0; m < 3; ++m)
         for (int b = 0; b < sl::eqBandCount (m); ++b)
             pEq[m][b] = apvts.getRawParameterValue (eqParamId (m, b));
@@ -87,6 +89,7 @@ sl::Params SelahProcessor::readParams() const
     p.limiter      = pLimiter->load() > 0.5f;
     p.eqMode       = juce::jlimit (0, 2, juce::roundToInt (pEqMode->load()));
     p.eqPost       = pEqPost->load() > 0.5f;
+    p.mono         = pWidth->load() < 0.5f;
     for (int b = 0; b < sl::eqBandCount (p.eqMode); ++b)
         p.eqGain[b] = pEq[p.eqMode][b]->load();
     return p;

@@ -81,6 +81,21 @@ int main()
                      10.0 * std::log10 (acc / (double) cnt), peak, fail ? "FAIL" : "");
     }
 
+    // 2c. Mono switch: both sides must come out identical, even with the stereo reverb up.
+    {
+        ChannelEngine e; e.prepare (sr);
+        Params p; p.source = Choir; p.space = 1.0f; p.mono = true; e.setParams (p);
+        float diff = 0, peak = 0;
+        for (int b = 0; b < 300; ++b)
+        {
+            for (int i = 0; i < block; ++i) { L[(size_t) i] = 0.3f * u (rng); R[(size_t) i] = 0.3f * u (rng); }
+            e.process (L.data(), R.data(), block);
+            for (int i = 0; i < block; ++i) { diff = std::max (diff, std::abs (L[(size_t) i] - R[(size_t) i])); peak = std::max (peak, std::abs (L[(size_t) i])); }
+        }
+        const bool ok = diff < 1.0e-6f && peak > 0.01f; fails += ! ok;
+        std::printf ("mono: max L-R difference %.2e, peak %.3f %s\n", diff, peak, ok ? "" : "FAIL");
+    }
+
     // 3. Limiter off must pass audio untouched in level terms (no clamp), and silence in = silence out.
     {
         ChannelEngine e; e.prepare (sr);

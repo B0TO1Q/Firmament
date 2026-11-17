@@ -78,14 +78,14 @@ private:
 
     juce::OwnedArray<hw::SourceButton> sourceButtons;
     juce::Slider knobs[6], revLength;
-    hw::ToggleSwitch advancedSwitch, limiterSwitch, eqPostSwitch;
+    hw::ToggleSwitch advancedSwitch, limiterSwitch, eqPostSwitch, stereoSwitch;
     juce::OwnedArray<juce::Slider> eqSliders[3];
     juce::OwnedArray<hw::TextKey> bandKeys;
     hw::TextKey flatKey { "FLAT" };
 
     juce::OwnedArray<SliderAtt> sliderAtts;
     std::unique_ptr<ButtonAtt> limiterAtt;
-    std::unique_ptr<juce::ParameterAttachment> sourceAtt, eqModeAtt, eqPostAtt;
+    std::unique_ptr<juce::ParameterAttachment> sourceAtt, eqModeAtt, eqPostAtt, widthAtt;
 
     int source = 0, eqMode = 0;
     bool advanced = false;

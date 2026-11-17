@@ -45,7 +45,7 @@ private:
     std::vector<float> scratch;
     std::atomic<float>* pSource = nullptr, *pClean = nullptr, *pWarm = nullptr, *pClarity = nullptr,
                       *pEven = nullptr, *pSpace = nullptr, *pVolume = nullptr, *pRevLen = nullptr, *pLimiter = nullptr,
-                      *pEqMode = nullptr, *pEqPost = nullptr;
+                      *pEqMode = nullptr, *pEqPost = nullptr, *pWidth = nullptr;
     std::atomic<float>* pEq[3][sl::kMaxEqBands] = {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SelahProcessor)
