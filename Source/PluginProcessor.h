@@ -33,6 +33,7 @@ public:
     void setStateInformation (const void*, int) override;
 
     juce::AudioProcessorValueTreeState apvts;
+    std::atomic<float> outputPeak { 0.0f };   // for the interface meter
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();

@@ -135,6 +135,12 @@ void FirmamentProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::M
 
     engine.process (L, R, n);
 
+    float pk = 0.0f;
+    for (int i = 0; i < n; ++i)
+        pk = juce::jmax (pk, std::abs (L[i]), std::abs (R[i]));
+    const float fall = std::exp (-(float) n / (0.25f * (float) getSampleRate()));
+    outputPeak.store (juce::jmax (pk, outputPeak.load (std::memory_order_relaxed) * fall), std::memory_order_relaxed);
+
     if (numCh < 2)                                           // mono out: fold the stereo tail down
         for (int i = 0; i < n; ++i)
             L[i] = 0.5f * (L[i] + R[i]);
