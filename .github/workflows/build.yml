@@ -3,7 +3,6 @@ name: Build plugins
 on:
   push:
     branches: [main]
-    tags: ['selah-v*']
   workflow_dispatch:
 
 permissions:
@@ -65,7 +64,6 @@ jobs:
           path: dist/*-mac.zip
 
       - name: Publish to Releases
-        if: github.ref_type == 'branch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest-build
@@ -73,12 +71,25 @@ jobs:
           prerelease: true
           files: dist/*-mac.zip
 
+      - name: Check for a new Selah version
+        id: ver
+        shell: bash
+        run: |
+          V=$(tr -d '[:space:]' < packaging/SELAH_VERSION)
+          echo "tag=selah-v$V" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/selah-v$V" > /dev/null; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish Selah version release
-        if: startsWith(github.ref, 'refs/tags/selah-v')
+        if: steps.ver.outputs.new == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Selah ${{ github.ref_name }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Selah ${{ steps.ver.outputs.tag }}
           body_path: packaging/SELAH_RELEASE.md
           make_latest: true
           files: dist/Selah-mac.zip
@@ -124,7 +135,6 @@ jobs:
           path: dist/*-windows.zip
 
       - name: Publish to Releases
-        if: github.ref_type == 'branch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest-build
@@ -132,12 +142,25 @@ jobs:
           prerelease: true
           files: dist/*-windows.zip
 
+      - name: Check for a new Selah version
+        id: ver
+        shell: bash
+        run: |
+          V=$(tr -d '[:space:]' < packaging/SELAH_VERSION)
+          echo "tag=selah-v$V" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/selah-v$V" > /dev/null; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish Selah version release
-        if: startsWith(github.ref, 'refs/tags/selah-v')
+        if: steps.ver.outputs.new == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Selah ${{ github.ref_name }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Selah ${{ steps.ver.outputs.tag }}
           body_path: packaging/SELAH_RELEASE.md
           make_latest: true
           files: dist/Selah-windows.zip
