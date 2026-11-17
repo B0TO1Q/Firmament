@@ -292,49 +292,41 @@ void SourceButton::paintButton (juce::Graphics& g, bool over, bool down)
             stroke.startNewSubPath (0.50f, 0.64f); stroke.lineTo (0.50f, 0.86f);
             stroke.startNewSubPath (0.32f, 0.88f); stroke.lineTo (0.68f, 0.88f);
             break;
-        case sl::LeadVocal:
-            fill.addEllipse (0.34f, 0.04f, 0.32f, 0.32f);
-            fill.addQuadrilateral (0.41f, 0.38f, 0.59f, 0.38f, 0.545f, 0.96f, 0.455f, 0.96f);
-            fill.applyTransform (juce::AffineTransform::rotation (0.62f, 0.5f, 0.5f));
+        case sl::LeadVocal:   // a single note
+            fill.addEllipse (0.20f, 0.62f, 0.34f, 0.26f);
+            stroke.startNewSubPath (0.52f, 0.74f); stroke.lineTo (0.52f, 0.12f);
+            stroke.lineTo (0.80f, 0.30f);
             break;
-        case sl::Choir:
-            fill.addEllipse (0.38f, 0.14f, 0.24f, 0.24f);
-            fill.addEllipse (0.10f, 0.26f, 0.20f, 0.20f);
-            fill.addEllipse (0.70f, 0.26f, 0.20f, 0.20f);
-            fill.addPieSegment (0.28f, 0.44f, 0.44f, 0.80f, -1.5708f, 1.5708f, 0.0f);
-            fill.addPieSegment (0.02f, 0.52f, 0.34f, 0.64f, -1.5708f, 1.5708f, 0.0f);
-            fill.addPieSegment (0.64f, 0.52f, 0.34f, 0.64f, -1.5708f, 1.5708f, 0.0f);
+        case sl::Choir:       // three voices
+            fill.addEllipse (0.36f, 0.16f, 0.28f, 0.28f);
+            fill.addEllipse (0.06f, 0.52f, 0.28f, 0.28f);
+            fill.addEllipse (0.66f, 0.52f, 0.28f, 0.28f);
             break;
-        case sl::Acoustic:
-            fill.addEllipse (0.24f, 0.50f, 0.52f, 0.44f);
-            fill.addEllipse (0.31f, 0.33f, 0.38f, 0.32f);
-            fill.addRectangle (0.455f, 0.02f, 0.09f, 0.36f);
-            cut.addEllipse (0.42f, 0.52f, 0.16f, 0.16f);
-            fill.applyTransform (juce::AffineTransform::rotation (0.55f, 0.5f, 0.5f));
-            cut.applyTransform (juce::AffineTransform::rotation (0.55f, 0.5f, 0.5f));
+        case sl::Acoustic:    // round body, sound hole, neck
+            stroke.addEllipse (0.12f, 0.36f, 0.54f, 0.54f);
+            fill.addEllipse (0.31f, 0.55f, 0.16f, 0.16f);
+            stroke.startNewSubPath (0.60f, 0.42f); stroke.lineTo (0.90f, 0.10f);
             break;
-        case sl::Electric:
+        case sl::Electric:    // bolt
             fill.startNewSubPath (0.60f, 0.04f); fill.lineTo (0.22f, 0.56f); fill.lineTo (0.46f, 0.56f);
             fill.lineTo (0.36f, 0.96f); fill.lineTo (0.78f, 0.42f); fill.lineTo (0.54f, 0.42f); fill.closeSubPath();
             break;
-        case sl::Bass:
+        case sl::Bass:        // bass clef
             fill.addEllipse (0.20f, 0.30f, 0.17f, 0.17f);
             stroke.startNewSubPath (0.24f, 0.38f); stroke.cubicTo (0.22f, 0.08f, 0.66f, 0.06f, 0.66f, 0.38f);
             stroke.cubicTo (0.66f, 0.62f, 0.44f, 0.80f, 0.22f, 0.90f);
             fill.addEllipse (0.76f, 0.20f, 0.10f, 0.10f);
             fill.addEllipse (0.76f, 0.44f, 0.10f, 0.10f);
             break;
-        case sl::Keys:
-            stroke.addRoundedRectangle (0.08f, 0.24f, 0.84f, 0.52f, 0.04f);
-            for (float kx : { 0.29f, 0.50f, 0.71f }) { stroke.startNewSubPath (kx, 0.24f); stroke.lineTo (kx, 0.76f); }
-            for (float kx : { 0.235f, 0.445f, 0.655f }) fill.addRectangle (kx, 0.24f, 0.11f, 0.30f);
+        case sl::Keys:        // three keys
+            stroke.addRectangle (0.10f, 0.20f, 0.80f, 0.60f);
+            for (float kx : { 0.367f, 0.633f }) { stroke.startNewSubPath (kx, 0.50f); stroke.lineTo (kx, 0.80f); }
+            for (float kx : { 0.297f, 0.563f }) fill.addRectangle (kx, 0.20f, 0.14f, 0.34f);
             break;
-        case sl::Drums:
-            stroke.addEllipse (0.16f, 0.38f, 0.68f, 0.20f);
-            stroke.startNewSubPath (0.16f, 0.48f); stroke.lineTo (0.16f, 0.76f);
-            stroke.cubicTo (0.16f, 0.92f, 0.84f, 0.92f, 0.84f, 0.76f); stroke.lineTo (0.84f, 0.48f);
-            stroke.startNewSubPath (0.08f, 0.08f); stroke.lineTo (0.44f, 0.44f);
-            stroke.startNewSubPath (0.92f, 0.08f); stroke.lineTo (0.56f, 0.44f);
+        case sl::Drums:       // drum head and crossed sticks
+            stroke.addEllipse (0.20f, 0.36f, 0.60f, 0.56f);
+            stroke.startNewSubPath (0.10f, 0.06f); stroke.lineTo (0.60f, 0.56f);
+            stroke.startNewSubPath (0.90f, 0.06f); stroke.lineTo (0.40f, 0.56f);
             break;
         default: // Full mix: three faders
             for (float fx : { 0.24f, 0.50f, 0.76f }) { stroke.startNewSubPath (fx, 0.12f); stroke.lineTo (fx, 0.88f); }
