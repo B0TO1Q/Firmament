@@ -98,10 +98,12 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval.zip
           Expand-Archive pluginval.zip -DestinationPath pv
+          $failed = 0
           foreach ($P in "Firmament", "Selah") {
-            & ./pv/pluginval.exe --strictness-level 8 --validate-in-process --timeout-ms 180000 --validate "dist/$P/$P.vst3"
-            if ($LASTEXITCODE -ne 0) { exit 1 }
+            & ./pv/pluginval.exe --strictness-level 8 --verbose --timeout-ms 180000 --validate "dist/$P/$P.vst3"
+            if ($LASTEXITCODE -ne 0) { Write-Host "pluginval FAILED for $P"; $failed = 1 }
           }
+          if ($failed -ne 0) { exit 1 }
 
       - uses: actions/upload-artifact@v4
         with:
