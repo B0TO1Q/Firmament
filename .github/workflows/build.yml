@@ -77,10 +77,13 @@ jobs:
         run: |
           V=$(tr -d '[:space:]' < packaging/SELAH_VERSION)
           echo "tag=selah-v$V" >> "$GITHUB_OUTPUT"
-          if git ls-remote --exit-code --tags origin "refs/tags/selah-v$V" > /dev/null; then
-            echo "new=false" >> "$GITHUB_OUTPUT"
-          else
+          # publish if this version has no tag yet, or the tag was just made by this same build
+          # (the Mac and Windows jobs both attach their zip to one release)
+          T=$(git ls-remote --tags origin "refs/tags/selah-v$V" | cut -f1)
+          if [ -z "$T" ] || [ "$T" = "$GITHUB_SHA" ]; then
             echo "new=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Publish Selah version release
@@ -148,10 +151,13 @@ jobs:
         run: |
           V=$(tr -d '[:space:]' < packaging/SELAH_VERSION)
           echo "tag=selah-v$V" >> "$GITHUB_OUTPUT"
-          if git ls-remote --exit-code --tags origin "refs/tags/selah-v$V" > /dev/null; then
-            echo "new=false" >> "$GITHUB_OUTPUT"
-          else
+          # publish if this version has no tag yet, or the tag was just made by this same build
+          # (the Mac and Windows jobs both attach their zip to one release)
+          T=$(git ls-remote --tags origin "refs/tags/selah-v$V" | cut -f1)
+          if [ -z "$T" ] || [ "$T" = "$GITHUB_SHA" ]; then
             echo "new=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Publish Selah version release
