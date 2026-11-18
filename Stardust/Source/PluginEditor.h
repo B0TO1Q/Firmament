@@ -5,7 +5,7 @@
 namespace st
 {
 const juce::Colour space  { 0xff0a0b18 };
-const juce::Colour gold   { 0xffe2b866 };
+const juce::Colour cream  { 0xffece8f4 };
 const juce::Colour silver { 0xffd6d8e4 };
 const juce::Colour violet { 0xffa36bff };
 const juce::Colour dim    { 0xff8a88a8 };

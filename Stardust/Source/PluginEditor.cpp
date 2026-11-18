@@ -22,19 +22,19 @@ void drawStar (juce::Graphics& g, juce::Point<float> c, float r, juce::Colour co
     g.fillPath (s);
 }
 
-// Midnight metal-flake: gold, silver and violet flecks, a few full stars.
+// Midnight metal-flake: silver, blue and violet flecks, a few full stars.
 void fillCosmic (juce::Graphics& g, juce::Rectangle<float> r, float corner, int seed)
 {
     juce::Path clip;
     clip.addRoundedRectangle (r, corner);
     juce::Graphics::ScopedSaveState save (g);
     g.reduceClipRegion (clip);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1a1840), r.getX() + r.getWidth() * 0.3f, r.getY(),
-                                             juce::Colour (0xff07070f), r.getRight(), r.getBottom(), true));
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff1b1a36), r.getX() + r.getWidth() * 0.3f, r.getY(),
+                                             juce::Colour (0xff08080f), r.getRight(), r.getBottom(), true));
     g.fillRect (r);
     juce::Random rnd (seed);
     const int flakes = juce::roundToInt (r.getWidth() * r.getHeight() / 60.0f);
-    const juce::Colour pal[4] = { st::gold, st::silver, st::violet, juce::Colour (0xff7fa8ff) };
+    const juce::Colour pal[4] = { st::silver, st::silver, st::violet, juce::Colour (0xff8fb4ff) };
     for (int i = 0; i < flakes; ++i)
     {
         const float x = r.getX() + rnd.nextFloat() * r.getWidth();
@@ -117,13 +117,13 @@ void Look::drawRotarySlider (juce::Graphics& g, int x, int y, int w, int h, floa
     if (std::abs (angle - from) > 0.01f)
     {
         arc.addCentredArc (c.x, c.y, ringR, ringR, 0.0f, juce::jmin (from, angle), juce::jmax (from, angle), true);
-        for (float wdt : { 12.0f, 7.0f })
+        for (float wdt : { 10.0f, 6.0f })
         {
-            g.setColour (violet.withAlpha (wdt > 10.0f ? 0.12f : 0.25f));
+            g.setColour (violet.withAlpha (wdt > 8.0f ? 0.08f : 0.18f));
             g.strokePath (arc, juce::PathStrokeType (wdt, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
         }
-        g.setColour (violet.brighter (0.4f));
-        g.strokePath (arc, juce::PathStrokeType (2.6f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.setColour (violet.brighter (0.3f));
+        g.strokePath (arc, juce::PathStrokeType (2.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
     // shadow
@@ -131,30 +131,37 @@ void Look::drawRotarySlider (juce::Graphics& g, int x, int y, int w, int h, floa
                                              juce::Colours::transparentBlack, c.x, c.y + body * 1.6f, true));
     g.fillEllipse (c.x - body * 1.3f, c.y - body * 0.9f, body * 2.6f, body * 2.6f);
 
-    // knurled chrome skirt
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xffeceef4), c.x - body * 0.5f, c.y - body,
-                                             juce::Colour (0xff3d3f4a), c.x + body * 0.4f, c.y + body, false));
+    // black ribbed body
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff3a3a40), c.x - body * 0.4f, c.y - body,
+                                             juce::Colour (0xff060608), c.x + body * 0.4f, c.y + body, false));
     g.fillEllipse (c.x - body, c.y - body, body * 2.0f, body * 2.0f);
-    for (int i = 0; i < 60; ++i)
+    for (int i = 0; i < 36; ++i)
     {
-        const float a = angle + juce::MathConstants<float>::twoPi * (float) i / 60.0f;
-        g.setColour ((i % 2 == 0 ? juce::Colours::black : juce::Colours::white).withAlpha (i % 2 == 0 ? 0.30f : 0.15f));
-        g.drawLine ({ c.getPointOnCircumference (body * 0.82f, a), c.getPointOnCircumference (body * 0.99f, a) }, 1.1f);
+        const float a = angle + juce::MathConstants<float>::twoPi * (float) i / 36.0f;
+        g.setColour (juce::Colours::white.withAlpha (0.07f));
+        g.drawLine ({ c.getPointOnCircumference (body * 0.80f, a), c.getPointOnCircumference (body * 0.99f, a) }, 1.6f);
     }
-    g.setColour (juce::Colours::black.withAlpha (0.7f));
+    g.setColour (juce::Colours::black);
     g.drawEllipse (c.x - body, c.y - body, body * 2.0f, body * 2.0f, 1.0f);
 
-    // polished dome
-    const float cap = body * 0.76f;
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff7f8fc), c.x - cap * 0.5f, c.y - cap * 0.7f,
-                                             juce::Colour (0xff50525e), c.x + cap * 0.6f, c.y + cap, true));
+    // brushed aluminium cap
+    const float cap = body * 0.74f;
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xffe6e7ec), c.x - cap, c.y - cap,
+                                             juce::Colour (0xff8a8c96), c.x + cap, c.y + cap, false));
     g.fillEllipse (c.x - cap, c.y - cap, cap * 2.0f, cap * 2.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.35f));
-    g.fillEllipse (c.x - cap * 0.55f, c.y - cap * 0.7f, cap * 0.7f, cap * 0.35f);
+    for (float rr = cap * 0.15f; rr < cap; rr += 2.0f)   // concentric machining rings
+    {
+        g.setColour (juce::Colours::black.withAlpha (0.05f));
+        g.drawEllipse (c.x - rr, c.y - rr, rr * 2.0f, rr * 2.0f, 0.6f);
+    }
+    g.setColour (juce::Colours::black.withAlpha (0.45f));
+    g.drawEllipse (c.x - cap, c.y - cap, cap * 2.0f, cap * 2.0f, 1.0f);
 
-    // pointer
-    g.setColour (juce::Colour (0xff141420));
-    g.drawLine ({ c.getPointOnCircumference (cap * 0.25f, angle), c.getPointOnCircumference (body * 0.95f, angle) }, 3.0f);
+    // index line across the cap and onto the body
+    g.setColour (juce::Colour (0xff101014));
+    g.drawLine ({ c.getPointOnCircumference (cap * 0.15f, angle), c.getPointOnCircumference (cap * 0.92f, angle) }, 2.6f);
+    g.setColour (cream);
+    g.drawLine ({ c.getPointOnCircumference (cap * 1.04f, angle), c.getPointOnCircumference (body * 0.96f, angle) }, 2.4f);
 }
 
 void Key::paintButton (juce::Graphics& g, bool over, bool down)
@@ -325,27 +332,29 @@ void StardustEditor::drawFace (juce::Graphics& g)
     fillCosmic (g, f, 5.0f, 9);
     g.setColour (juce::Colours::white.withAlpha (0.12f));
     g.drawRoundedRectangle (f, 5.0f, 1.0f);
-    g.setColour (gold.withAlpha (0.5f));
+    g.setColour (silver.withAlpha (0.45f));
     g.drawRoundedRectangle (f.reduced (4.0f), 4.0f, 1.0f);
 
-    // nameplate
-    g.setFont (font (46.0f, true, 0.42f));
-    g.setColour (juce::Colours::black.withAlpha (0.6f));
-    g.drawText ("STARDUST", topPanel.getX() + 2, 24, 460, 50, juce::Justification::centredLeft);
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xfffff0c8), 0.0f, 24.0f, juce::Colour (0xffb88a3a), 0.0f, 72.0f, false));
-    g.drawText ("STARDUST", topPanel.getX(), 22, 460, 50, juce::Justification::centredLeft);
-    drawStar (g, { (float) topPanel.getX() + 452.0f, 34.0f }, 9.0f, gold);
-    drawStar (g, { (float) topPanel.getX() + 468.0f, 52.0f }, 5.0f, silver.withAlpha (0.8f));
-    g.setFont (font (11.0f, true, 0.32f));
-    g.setColour (silver.withAlpha (0.8f));
-    g.drawText ("ATMOSPHERIC EFFECTS SYSTEM", topPanel.getX() + 3, 76, 460, 14, juce::Justification::centredLeft);
+    // nameplate: chrome lettering, double rule underneath
+    g.setFont (font (44.0f, true, 0.46f));
+    g.setColour (juce::Colours::black.withAlpha (0.7f));
+    g.drawText ("STARDUST", topPanel.getX() + 2, 22, 470, 50, juce::Justification::centredLeft);
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xffffffff), 0.0f, 26.0f, juce::Colour (0xff7d8090), 0.0f, 66.0f, false));
+    g.drawText ("STARDUST", topPanel.getX(), 20, 470, 50, juce::Justification::centredLeft);
+    g.setColour (silver.withAlpha (0.55f));
+    g.fillRect ((float) topPanel.getX() + 2.0f, 72.0f, 440.0f, 1.0f);
+    g.fillRect ((float) topPanel.getX() + 2.0f, 75.0f, 440.0f, 0.6f);
+    drawStar (g, { (float) topPanel.getX() + 458.0f, 40.0f }, 8.0f, cream);
+    g.setFont (font (10.5f, true, 0.34f));
+    g.setColour (cream.withAlpha (0.75f));
+    g.drawText ("ATMOSPHERIC EFFECTS SYSTEM", topPanel.getX() + 3, 82, 460, 14, juce::Justification::centredLeft);
 
     // panels
     for (auto r : { topPanel, bottomPanel })
     {
         g.setColour (juce::Colours::black.withAlpha (0.45f));
         g.fillRoundedRectangle (r.toFloat(), 8.0f);
-        g.setColour (gold.withAlpha (0.35f));
+        g.setColour (silver.withAlpha (0.30f));
         g.drawRoundedRectangle (r.toFloat(), 8.0f, 1.0f);
     }
 
@@ -359,10 +368,10 @@ void StardustEditor::drawFace (juce::Graphics& g)
         g.setColour (silver.withAlpha (0.35f));
         g.drawEllipse (l.expanded (2.5f), 1.0f);
         g.setFont (font (10.0f, true, 0.1f));
-        g.setColour (gold.withAlpha (0.8f));
+        g.setColour (silver.withAlpha (0.6f));
         g.drawText (juce::String (i + 1), k.getX(), topPanel.getY() + 6, k.getWidth(), 12, juce::Justification::centred);
-        g.setFont (font (14.0f, true, 0.12f));
-        g.setColour (gold);
+        g.setFont (font (14.0f, true, 0.16f));
+        g.setColour (cream);
         g.drawText (fxNames[i], k.getX() - 30, k.getBottom() + 4, k.getWidth() + 60, 18, juce::Justification::centred);
         g.setFont (font (10.5f, false, 0.02f));
         g.setColour (silver.withAlpha (0.65f));
@@ -370,8 +379,8 @@ void StardustEditor::drawFace (juce::Graphics& g)
     }
 
     // bottom row legends
-    g.setFont (font (10.5f, true, 0.16f));
-    g.setColour (gold);
+    g.setFont (font (10.5f, true, 0.2f));
+    g.setColour (cream.withAlpha (0.85f));
     g.drawText ("STUTTER RATE", rateKeys[0]->getX(), bottomPanel.getY() + 22, 208, 14, juce::Justification::centred);
     g.drawText ("SHIMMER", dirKeys[0]->getX(), bottomPanel.getY() + 22, 186, 14, juce::Justification::centred);
     g.drawText ("NEBULA", freeze.getX(), bottomPanel.getY() + 22, freeze.getWidth(), 14, juce::Justification::centred);
@@ -380,8 +389,8 @@ void StardustEditor::drawFace (juce::Graphics& g)
     for (int i = 0; i < 3; ++i)
     {
         const auto k = small[i]->getBounds();
-        g.setColour (gold);
-        g.setFont (font (11.5f, true, 0.12f));
+        g.setColour (cream);
+        g.setFont (font (11.5f, true, 0.14f));
         g.drawText (smallNames[i], k.getX() - 20, k.getBottom() + 2, k.getWidth() + 40, 14, juce::Justification::centred);
     }
     g.setFont (font (9.0f, true, 0.1f));
@@ -394,7 +403,7 @@ void StardustEditor::drawFace (juce::Graphics& g)
         const auto b = bpmBox.toFloat();
         g.setGradientFill (juce::ColourGradient (juce::Colour (0xffd8dae2), 0.0f, b.getY(), juce::Colour (0xff4a4c56), 0.0f, b.getBottom(), false));
         g.fillRoundedRectangle (b, 5.0f);
-        g.setColour (juce::Colour (0xff120a06));
+        g.setColour (juce::Colour (0xff050c0c));
         g.fillRoundedRectangle (b.reduced (3.0f), 3.5f);
         g.setFont (font (9.0f, true, 0.16f));
         g.setColour (silver.withAlpha (0.8f));
@@ -409,12 +418,12 @@ void StardustEditor::drawFace (juce::Graphics& g)
         g.fillRoundedRectangle (outer, 6.0f);
         g.setColour (juce::Colours::black);
         g.fillRoundedRectangle (outer.reduced (2.5f), 4.5f);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfffbf0c9), v.face.getCentreX(), v.face.getY(),
-                                                 juce::Colour (0xffd9bd78), v.face.getCentreX(), v.face.getBottom() + 30.0f, true));
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffeef5ff), v.face.getCentreX(), v.face.getY(),
+                                                 juce::Colour (0xff8fb2e0), v.face.getCentreX(), v.face.getBottom() + 30.0f, true));
         g.fillRoundedRectangle (v.face, 3.0f);
         juce::Graphics::ScopedSaveState save (g);
         g.reduceClipRegion (v.face.toNearestInt());
-        const juce::Colour vin (0xff231a10), red (0xffb3261a);
+        const juce::Colour vin (0xff13213d), red (0xffc0302a);
         const float redFrom = 5.0f / 6.0f;
         juce::Path arc, hot;
         arc.addCentredArc (v.pivot.x, v.pivot.y, v.radius, v.radius, 0.0f, v.angle (0.0f), v.angle (redFrom), true);
@@ -476,9 +485,11 @@ void StardustEditor::paint (juce::Graphics& g)
 
     // tempo in amber digits
     g.setFont (juce::Font (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(), 24.0f, juce::Font::bold)));
-    g.setColour (juce::Colour (0xffff9a2e).withAlpha (0.18f));
+    g.setColour (juce::Colour (0xff5ff2d6).withAlpha (0.12f));
     g.drawText ("888", bpmBox.reduced (6, 4), juce::Justification::centred);
-    g.setColour (juce::Colour (0xffffa53a));
+    g.setColour (juce::Colour (0xff5ff2d6).withAlpha (0.25f));
+    g.drawText (juce::String (bpmShown).paddedLeft ('0', 3), bpmBox.reduced (6, 4).translated (0, 1), juce::Justification::centred);
+    g.setColour (juce::Colour (0xff8afff0));
     g.drawText (juce::String (bpmShown).paddedLeft ('0', 3), bpmBox.reduced (6, 4), juce::Justification::centred);
 
     // needle
@@ -489,7 +500,7 @@ void StardustEditor::paint (juce::Graphics& g)
         const float a = v.angle (needle);
         g.setColour (juce::Colours::black.withAlpha (0.18f));
         g.drawLine ({ v.pivot.translated (2.0f, 2.0f), v.pivot.getPointOnCircumference (v.radius + 6.0f, a).translated (2.0f, 2.0f) }, 2.0f);
-        g.setColour (juce::Colour (0xff1a1410));
+        g.setColour (juce::Colour (0xff0f1526));
         g.drawLine ({ v.pivot, v.pivot.getPointOnCircumference (v.radius + 6.0f, a) }, 1.6f);
     }
 }
