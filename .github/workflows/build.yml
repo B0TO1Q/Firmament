@@ -18,6 +18,7 @@ jobs:
         run: |
           clang++ -std=c++17 -O2 -o engine_test Tests/engine_test.cpp && ./engine_test
           clang++ -std=c++17 -O2 -o selah_test Tests/selah_test.cpp && ./selah_test
+          clang++ -std=c++17 -O2 -o stardust_test Tests/stardust_test.cpp && ./stardust_test
           clang++ -std=c++17 -O2 -o selah_measure Tests/selah_measure.cpp && ./selah_measure
 
       - name: Configure
@@ -28,10 +29,11 @@ jobs:
           cmake --build build --config Release --target
           Firmament_VST3 Firmament_AU Firmament_Standalone
           Selah_VST3 Selah_AU Selah_Standalone
+          STARDUST_VST3 STARDUST_AU STARDUST_Standalone
 
       - name: Package
         run: |
-          for P in Firmament Selah; do
+          for P in Firmament Selah STARDUST; do
             ART=build/${P}_artefacts/Release
             mkdir -p dist/$P
             cp -R "$ART/VST3/$P.vst3" "$ART/AU/$P.component" "$ART/Standalone/$P.app" dist/$P/
@@ -49,11 +51,11 @@ jobs:
           unzip -q pluginval.zip
           PV=pluginval.app/Contents/MacOS/pluginval
           mkdir -p ~/Library/Audio/Plug-Ins/Components
-          for P in Firmament Selah; do
+          for P in Firmament Selah STARDUST; do
             cp -R dist/$P/$P.component ~/Library/Audio/Plug-Ins/Components/
           done
           killall -9 AudioComponentRegistrar 2>/dev/null || true
-          for P in Firmament Selah; do
+          for P in Firmament Selah STARDUST; do
             $PV --strictness-level 8 --validate-in-process --timeout-ms 180000 --validate dist/$P/$P.vst3
             $PV --strictness-level 8 --validate-in-process --timeout-ms 180000 --validate ~/Library/Audio/Plug-Ins/Components/$P.component
           done
@@ -106,12 +108,12 @@ jobs:
         run: cmake -B build
 
       - name: Build (Release)
-        run: cmake --build build --config Release --target Firmament_VST3 Firmament_Standalone Selah_VST3 Selah_Standalone
+        run: cmake --build build --config Release --target Firmament_VST3 Firmament_Standalone Selah_VST3 Selah_Standalone STARDUST_VST3 STARDUST_Standalone
 
       - name: Package
         shell: pwsh
         run: |
-          foreach ($P in "Firmament", "Selah") {
+          foreach ($P in "Firmament", "Selah", "STARDUST") {
             New-Item -ItemType Directory -Force "dist/$P" | Out-Null
             Copy-Item -Recurse "build/${P}_artefacts/Release/VST3/$P.vst3" "dist/$P/"
             Copy-Item "build/${P}_artefacts/Release/Standalone/$P.exe" "dist/$P/"
@@ -125,7 +127,7 @@ jobs:
           Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval.zip
           Expand-Archive pluginval.zip -DestinationPath pv
           $failed = 0
-          foreach ($P in "Firmament", "Selah") {
+          foreach ($P in "Firmament", "Selah", "STARDUST") {
             # pluginval.exe is a windowed app, so wait for it explicitly and read its real exit code
             $proc = Start-Process -FilePath "./pv/pluginval.exe" -Wait -PassThru -NoNewWindow -ArgumentList "--strictness-level", "8", "--validate-in-process", "--timeout-ms", "180000", "--validate", "dist/$P/$P.vst3"
             if ($proc.ExitCode -ne 0) { Write-Host "pluginval FAILED for $P (exit $($proc.ExitCode))"; $failed = 1 } else { Write-Host "pluginval passed for $P" }

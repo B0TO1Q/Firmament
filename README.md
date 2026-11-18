@@ -43,9 +43,27 @@ Underneath is a graphic EQ: 7, 14 or 21 bands (+/-12 dB each), a switch to place
 
 The ADVANCED switch opens a drawer showing the real numbers behind each knob, plus Reverb Length and the Safety Limiter switch.
 
+# STARDUST
+
+Atmospheric effects for house music and cinematic sound. Seven effects in one unit, zero added delay, locked to your DAW's tempo.
+
+![STARDUST interface](docs/stardust-ui.png)
+
+| # | Effect | What it does |
+|---|--------|--------------|
+| 1 | Drive | Warm grit up to full fuzz, with the fizz tamed as it gets dirtier |
+| 2 | Glow | New harmonics from the top end only, plus air |
+| 3 | Orchestra | Turns one part into a section: detuned unison voices, an octave below and an octave above that bow in after each note |
+| 4 | Stutter | Beat-repeat locked to the tempo (1/4 to 1/32). A little = last beat of the bar, more = beats 2 and 4, full = every beat |
+| 5 | Shimmer | Tails that climb an octave up, down or both |
+| 6 | Nebula | Huge reverb (about 3 to 24 seconds), FREEZE holds it forever |
+| 7 | Pump | House sidechain pump on every beat |
+
+Plus FILTER (left = low-pass, right = high-pass, double-click to centre), MIX and OUTPUT. With every effect at zero it passes audio through untouched. The amber window shows the tempo it is following.
+
 ## Install (Mac)
 
-Download `Firmament-mac.zip` or `Selah-mac.zip` from Releases, unzip, right-click `Install.command` and choose Open.
+Download `Firmament-mac.zip`, `Selah-mac.zip` or `STARDUST-mac.zip` from Releases, unzip, right-click `Install.command` and choose Open.
 Then restart the DAW and rescan plugins.
 
 ## Build
@@ -60,6 +78,8 @@ JUCE 9.0.5 is fetched automatically. Every push to `main` builds the Mac (VST3 +
 - `Source/dsp/ReverbEngine.h` - the reverb itself, plain C++ with no framework dependency (shared by both plugins)
 - `Selah/Source/ChannelEngine.h` - Selah's processing, plain C++
 - `Selah/Source/Plugin*` - Selah's parameters and hardware-style interface
+- `Stardust/Source/StardustEngine.h` - STARDUST's processing, plain C++
+- `Stardust/Source/Plugin*` - STARDUST's parameters and interface
 - `Shared/ui/` - widgets shared between plugins
 - `Source/PluginProcessor.*` - parameters and host glue
 - `Source/PluginEditor.*` - interface
