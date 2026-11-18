@@ -4,15 +4,14 @@
 
 namespace st
 {
-const juce::Colour space  { 0xff0a0b18 };
-const juce::Colour cream  { 0xffece8f4 };
-const juce::Colour silver { 0xffd6d8e4 };
-const juce::Colour violet { 0xffa36bff };
-const juce::Colour dim    { 0xff8a88a8 };
+const juce::Colour crimson { 0xffa8141f };
+const juce::Colour ink     { 0xff17171a };   // silkscreen black
+const juce::Colour paper   { 0xfff4f2ee };   // warm white
+const juce::Colour grey    { 0xff5d5d63 };
 
 juce::Font font (float height, bool bold = true, float kerning = 0.06f);
 
-// Chrome knob with a glowing violet ring; bipolar sliders glow out from the centre.
+// Console knob: crimson cap for the seven effects, black cap for the utilities.
 class Look final : public juce::LookAndFeel_V4
 {
 public:
@@ -20,7 +19,7 @@ public:
                            float startAngle, float endAngle, juce::Slider&) override;
 };
 
-// Dark key with a legend; glows violet when on.
+// Black key with a white legend; lights crimson when on.
 class Key final : public juce::Button
 {
 public:
