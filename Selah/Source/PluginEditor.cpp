@@ -4,15 +4,6 @@ namespace
 {
 constexpr int kWidth = 940, kHeightClosed = 728, kDrawerHeight = 140, kEqHeight = 162;
 
-const char* const knobNames[6] = { "CLEAN UP", "WARMTH", "CLARITY", "EVEN OUT", "SPACE", "VOLUME" };
-const char* const knobHints[6] = {
-    "Rumble, hiss,\nharsh S sounds",
-    "Body and\nfullness",
-    "Less mud,\nmore presence",
-    "Keeps the level\nsteady",
-    "Room sound\naround it",
-    "Final\nloudness",
-};
 const char* const sourceLabels[sl::kNumSources] = {
     "Speaker\nMic", "Lead\nVocal", "Choir", "Acoustic\nGuitar", "Electric\nGuitar", "Bass", "Keys", "Drums", "Full\nMix"
 };
@@ -286,7 +277,7 @@ void SourceButton::paintButton (juce::Graphics& g, bool over, bool down)
     juce::Path fill, stroke, cut;
     switch (index)
     {
-        case sl::Pastor:
+        case sl::Speaker:
             fill.addRoundedRectangle (0.38f, 0.08f, 0.24f, 0.44f, 0.12f);
             stroke.startNewSubPath (0.25f, 0.40f); stroke.cubicTo (0.25f, 0.72f, 0.75f, 0.72f, 0.75f, 0.40f);
             stroke.startNewSubPath (0.50f, 0.64f); stroke.lineTo (0.50f, 0.86f);
@@ -398,19 +389,20 @@ SelahEditor::SelahEditor (SelahProcessor& p) : AudioProcessorEditor (p), proc (p
         addAndMakeVisible (b);
     }
 
-    const char* ids[6] = { "cleanup", "warmth", "clarity", "evenout", "space", "volume" };
-    const auto setup = [this] (juce::Slider& s, const char* id)
+    const auto style = [this] (juce::Slider& s)
     {
         s.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
         s.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
         s.setRotaryParameters (juce::MathConstants<float>::pi * 1.25f, juce::MathConstants<float>::pi * 2.75f, true);
         s.setPopupDisplayEnabled (true, true, this);
         addAndMakeVisible (s);
-        sliderAtts.add (new SliderAtt (proc.apvts, id, s));
     };
-    for (int i = 0; i < 6; ++i)
-        setup (knobs[i], ids[i]);
-    setup (revLength, "revlength");
+    for (auto& k : knobs) style (k);
+    style (revLength);
+    sliderAtts.add (new SliderAtt (proc.apvts, "volume", knobs[6]));
+    sliderAtts.add (new SliderAtt (proc.apvts, "revlength", revLength));
+    for (int t = 0; t < sl::kTools; ++t)
+        knobs[t].onValueChange = [this] { if (advanced) repaint (techBox); };
 
     addAndMakeVisible (limiterSwitch);
     limiterAtt = std::make_unique<ButtonAtt> (proc.apvts, "limiter", limiterSwitch);
@@ -482,7 +474,20 @@ void SelahEditor::sourceChanged (int s)
     source = juce::jlimit (0, sl::kNumSources - 1, s);
     for (int i = 0; i < sourceButtons.size(); ++i)
         sourceButtons[i]->setToggleState (i == source, juce::dontSendNotification);
+    attachTools();
+    if (getWidth() > 0)
+        renderBackground();   // tool names are printed on the face
     repaint();
+}
+
+void SelahEditor::attachTools()
+{
+    // each source has its own six parameters; point the six knobs at this source's set
+    for (int t = 0; t < sl::kTools; ++t)
+    {
+        toolAtts[t].reset();
+        toolAtts[t] = std::make_unique<SliderAtt> (proc.apvts, SelahProcessor::toolParamId (source, t), knobs[t]);
+    }
 }
 
 void SelahEditor::eqModeChanged (int m)
@@ -549,11 +554,11 @@ void SelahEditor::resized()
     stereoSwitch.setBounds (cellsX + cellW + (cellW - 36) / 2, ledBox.getY() + 23, 36, 44);
     advancedSwitch.setBounds (cellsX + 2 * cellW + (cellW - 36) / 2, ledBox.getY() + 23, 36, 44);
 
-    // six knobs in six equal columns
-    const int kSize = 118;
-    const float col = (float) (inset.getWidth() - 2 * pad) / 6.0f;
-    for (int i = 0; i < 6; ++i)
-        knobs[i].setBounds (inset.getX() + pad + juce::roundToInt (col * ((float) i + 0.5f)) - kSize / 2, inset.getY() + 116, kSize, kSize);
+    // this source's six tools, then VOLUME, in seven equal columns
+    const int kSize = 108;
+    const float col = (float) (inset.getWidth() - 2 * pad) / 7.0f;
+    for (int i = 0; i < 7; ++i)
+        knobs[i].setBounds (inset.getX() + pad + juce::roundToInt (col * ((float) i + 0.5f)) - kSize / 2, inset.getY() + 118, kSize, kSize);
 
     eqPanel = { inset.getX(), inset.getBottom() + 14, inset.getWidth(), kEqHeight };
     eqArea  = { eqPanel.getX() + 196, eqPanel.getY() + 22, eqPanel.getWidth() - 196 - 20, 104 };
@@ -651,16 +656,23 @@ void SelahEditor::drawFace (juce::Graphics& g)
     drawVuFace (g, ledBox, "OUTPUT LEVEL", { "-30", "-24", "-18", "-12", "-6", "0", "+3" }, 5.0f / 6.0f);
     drawVuFace (g, grBox, "EVENING OUT", { "0", "4", "8", "12", "16" }, 1.0f);
 
-    // knob names and plain-English hints
-    for (int i = 0; i < 6; ++i)
+    // this source's tool names and plain-English hints, then VOLUME
+    for (int i = 0; i < 7; ++i)
     {
         const auto k = knobs[i].getBounds();
-        g.setFont (font (14.0f, true, 0.10f));
+        const juce::String name = i < 6 ? juce::String (sl::toolSpec (source, i).name) : juce::String ("VOLUME");
+        const juce::String hint = i < 6 ? juce::String (sl::toolSpec (source, i).hint) : juce::String ("Final\nloudness");
+        g.setFont (font (13.5f, true, 0.08f));
         g.setColour (cream);
-        g.drawText (knobNames[i], k.getX() - 20, k.getBottom() + 2, k.getWidth() + 40, 18, juce::Justification::centred);
-        g.setFont (font (11.0f, false, 0.01f));
+        g.drawText (name, k.getX() - 20, k.getBottom() + 2, k.getWidth() + 40, 18, juce::Justification::centred);
+        g.setFont (font (10.5f, false, 0.01f));
         g.setColour (cream.withAlpha (0.6f));
-        g.drawFittedText (knobHints[i], k.getX() - 14, k.getBottom() + 22, k.getWidth() + 28, 30, juce::Justification::centredTop, 2);
+        g.drawFittedText (hint, k.getX() - 16, k.getBottom() + 21, k.getWidth() + 32, 28, juce::Justification::centredTop, 2);
+    }
+    {   // a printed divider sets VOLUME apart from the source's tools
+        const float x = 0.5f * (float) (knobs[5].getRight() + knobs[6].getX());
+        g.setColour (cream.withAlpha (0.25f));
+        g.fillRect (x - 0.5f, (float) knobs[6].getY() + 6.0f, 1.0f, (float) knobs[6].getHeight() + 40.0f);
     }
 
     g.setFont (font (10.0f, true, 0.12f));
@@ -753,25 +765,23 @@ void SelahEditor::paint (juce::Graphics& g)
 
     if (advanced)
     {
-        const auto t = sl::describe (proc.readParams());
-        const auto& c = sl::sourceCfg (source);
+        const auto prm = proc.readParams();
         juce::StringArray lines;
-        lines.add ("CLEAN UP  low cut " + juce::String (juce::roundToInt (t.hpHz)) + " Hz"
-                   + (c.deEssMaxDb > 0 ? " / de-ess to " + juce::String (t.deEssDb, 1) + " dB" : juce::String())
-                   + (c.gateThrDb > -80.0f ? " / gate " + juce::String (juce::roundToInt (t.gateThrDb)) + " dB" : juce::String()));
-        lines.add ("WARMTH    +" + juce::String (t.warmDb, 1) + " dB @ " + juce::String (juce::roundToInt (c.warmHz)) + " Hz / transformer drive");
-        lines.add ("CLARITY   " + juce::String (t.mudDb, 1) + " dB @ " + juce::String (juce::roundToInt (c.mudHz))
-                   + " / +" + juce::String (t.presDb, 1) + " dB @ " + juce::String (c.presHz / 1000.0f, 1)
-                   + "k / +" + juce::String (t.airDb, 1) + " dB @ " + juce::String (c.airHz / 1000.0f, 1) + "k");
-        lines.add ("EVEN OUT  " + juce::String (t.ratio, 1) + ":1 / threshold " + juce::String (t.thrDb, 1) + " dB / now " + (gr > 0.05f ? "-" + juce::String (gr, 1) : juce::String ("0.0")) + " dB");
-        lines.add ("SPACE     " + juce::String (fm::modeName (c.reverbMode)) + " / " + juce::String (t.revSeconds, 1) + " s");
-        g.setFont (juce::Font (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(), 12.0f, juce::Font::plain)));
+        for (int t = 0; t < sl::kTools; ++t)
+        {
+            const auto& ts = sl::toolSpec (source, t);
+            const float amt = prm.tool[source][t];
+            lines.add (juce::String (ts.name).paddedRight (' ', 11)
+                       + (amt > 0.003f ? juce::String (sl::describeTool (ts, amt, prm.reverbLength)) : juce::String ("off")));
+        }
+        lines.add ("GAIN RED. now " + (gr > 0.05f ? "-" + juce::String (gr, 1) : juce::String ("0.0")) + " dB");
+        g.setFont (juce::Font (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(), 11.0f, juce::Font::plain)));
         g.setColour (cream.withAlpha (0.9f));
-        int y = techBox.getY();
+        int y = techBox.getY() - 4;
         for (const auto& s : lines)
         {
-            g.drawText (s, techBox.getX(), y, techBox.getWidth(), 16, juce::Justification::centredLeft);
-            y += 20;
+            g.drawText (s, techBox.getX(), y, techBox.getWidth(), 14, juce::Justification::centredLeft);
+            y += 15;
         }
     }
 }

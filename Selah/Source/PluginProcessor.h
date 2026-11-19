@@ -35,6 +35,7 @@ public:
     sl::Params readParams() const;
     static juce::String eqParamId (int mode, int band) { return "eq" + juce::String (sl::eqBandCount (mode)) + "_" + juce::String (band); }
     static juce::String eqFreqText (float hz);
+    static juce::String toolParamId (int source, int tool) { return "s" + juce::String (source) + "_t" + juce::String (tool); }
 
     juce::AudioProcessorValueTreeState apvts;
     sl::ChannelEngine engine;
@@ -43,8 +44,8 @@ private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 
     std::vector<float> scratch;
-    std::atomic<float>* pSource = nullptr, *pClean = nullptr, *pWarm = nullptr, *pClarity = nullptr,
-                      *pEven = nullptr, *pSpace = nullptr, *pVolume = nullptr, *pRevLen = nullptr, *pLimiter = nullptr,
+    std::atomic<float>* pTool[sl::kNumSources][sl::kTools] = {};
+    std::atomic<float>* pSource = nullptr, *pVolume = nullptr, *pRevLen = nullptr, *pLimiter = nullptr,
                       *pEqMode = nullptr, *pEqPost = nullptr, *pWidth = nullptr;
     std::atomic<float>* pEq[3][sl::kMaxEqBands] = {};
 

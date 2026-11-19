@@ -18,11 +18,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout SelahProcessor::createLayout
 
     juce::StringArray sources { "Speaker Mic", "Lead Vocal", "Choir", "Acoustic Guitar", "Electric Guitar", "Bass", "Keys", "Drums", "Full Mix" };
     l.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { "source", 1 }, "Source", sources, 0));
-    l.add (std::make_unique<APF> (juce::ParameterID { "cleanup", 1 }, "Clean Up", unit, 0.5f, tenAttr()));
-    l.add (std::make_unique<APF> (juce::ParameterID { "warmth", 1 }, "Warmth", unit, 0.3f, tenAttr()));
-    l.add (std::make_unique<APF> (juce::ParameterID { "clarity", 1 }, "Clarity", unit, 0.4f, tenAttr()));
-    l.add (std::make_unique<APF> (juce::ParameterID { "evenout", 1 }, "Even Out", unit, 0.4f, tenAttr()));
-    l.add (std::make_unique<APF> (juce::ParameterID { "space", 1 }, "Space", unit, 0.2f, tenAttr()));
+    // six tools per source; each source keeps its own settings
+    const char* srcTitles[sl::kNumSources] = { "Speaker Mic", "Lead Vocal", "Choir", "Acoustic", "Electric", "Bass", "Keys", "Drums", "Full Mix" };
+    for (int s = 0; s < sl::kNumSources; ++s)
+        for (int t = 0; t < sl::kTools; ++t)
+        {
+            const auto& ts = sl::toolSpec (s, t);
+            l.add (std::make_unique<APF> (juce::ParameterID { toolParamId (s, t), 1 },
+                                          juce::String (srcTitles[s]) + ": " + juce::String (ts.name).substring (0, 1) + juce::String (ts.name).substring (1).toLowerCase(),
+                                          unit, ts.def, tenAttr()));
+        }
     l.add (std::make_unique<APF> (juce::ParameterID { "volume", 1 }, "Volume",
             juce::NormalisableRange<float> (-24.0f, 12.0f, 0.1f), 0.0f,
             juce::AudioParameterFloatAttributes()
@@ -59,11 +64,9 @@ SelahProcessor::SelahProcessor()
       apvts (*this, nullptr, "SELAH", createLayout())
 {
     pSource  = apvts.getRawParameterValue ("source");
-    pClean   = apvts.getRawParameterValue ("cleanup");
-    pWarm    = apvts.getRawParameterValue ("warmth");
-    pClarity = apvts.getRawParameterValue ("clarity");
-    pEven    = apvts.getRawParameterValue ("evenout");
-    pSpace   = apvts.getRawParameterValue ("space");
+    for (int s = 0; s < sl::kNumSources; ++s)
+        for (int t = 0; t < sl::kTools; ++t)
+            pTool[s][t] = apvts.getRawParameterValue (toolParamId (s, t));
     pVolume  = apvts.getRawParameterValue ("volume");
     pRevLen  = apvts.getRawParameterValue ("revlength");
     pLimiter = apvts.getRawParameterValue ("limiter");
@@ -79,11 +82,9 @@ sl::Params SelahProcessor::readParams() const
 {
     sl::Params p;
     p.source       = juce::jlimit (0, sl::kNumSources - 1, juce::roundToInt (pSource->load()));
-    p.cleanUp      = pClean->load();
-    p.warmth       = pWarm->load();
-    p.clarity      = pClarity->load();
-    p.evenOut      = pEven->load();
-    p.space        = pSpace->load();
+    for (int s = 0; s < sl::kNumSources; ++s)
+        for (int t = 0; t < sl::kTools; ++t)
+            p.tool[s][t] = pTool[s][t]->load();
     p.volumeDb     = pVolume->load();
     p.reverbLength = pRevLen->load();
     p.limiter      = pLimiter->load() > 0.5f;

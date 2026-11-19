@@ -34,13 +34,10 @@ static Run runSine (Params p, double f, double ampDb, double seconds, double sr,
     for (size_t pos = 0; pos < n; pos += 256) e.process (r.L.data() + pos, r.R.data() + pos, (int) std::min<size_t> (256, n - pos));
     return r;
 }
-static Params flat (int source)
-{
-    Params p; p.source = source; p.cleanUp = p.warmth = p.clarity = p.evenOut = p.space = 0; p.limiter = false; return p;
-}
+static Params one (int source, int tool, float amt) { Params p; p.source = source; p.limiter = false; p.tool[source][tool] = amt; return p; }
 static double gainAt (Params p, double f, double sr = 48000, double lvl = -30)
 {
-    const Run r = runSine (p, f, lvl, 0.6, sr);
+    const Run r = runSine (p, f, lvl, 0.8, sr);
     return dB (toneAmp (r.L, r.L.size() / 2, f, sr)) - lvl;
 }
 
@@ -72,116 +69,62 @@ int main()
                 std::printf ("  fs=%5.0f fc=%5.0f %+3.0f dB: matched %.2f   plain bilinear %.2f %s\n", fs, fc, g, errM, errB, ok ? "" : "FAIL");
             }
 
-    std::printf ("\n== 2. Tone-shaping per source (dB change at the knob's full setting) ==\n");
-    std::printf ("  %-10s | low cut: -3dB near | warmth @shelf | mud cut | presence | air\n", "");
+    std::printf ("\n== 2. What every tool does at full (per source) ==\n");
+    std::mt19937 rng (7); std::uniform_real_distribution<float> u (-1.0f, 1.0f);
     for (int s = 0; s < kNumSources; ++s)
     {
-        const auto& c = sourceCfg (s);
-        Params p = flat (s); p.cleanUp = 1;
-        double f3 = 0; for (double f = 400; f > 15; f /= 1.04) if (gainAt (p, f, 48000, -6) < -3.0) { f3 = f; break; }
-        Params w = flat (s); w.warmth = 1;
-        Params cl = flat (s); cl.clarity = 1;
-        std::printf ("  %-10s | %5.0f Hz (%2.0f dB/oct) | %+5.1f @%4.0f  | %+5.1f   | %+5.1f    | %+5.1f\n", sourceName (s), f3,
-                     gainAt (p, f3 / 2, 48000, -6) - gainAt (p, f3 / 4, 48000, -6), gainAt (w, c.warmHz * 0.5), c.warmHz,
-                     gainAt (cl, c.mudHz), gainAt (cl, c.presHz), gainAt (cl, std::min (16000.0f, c.airHz * 1.4f)));
-    }
-
-    std::printf ("\n== 3. Warmth harmonics (knob full, tone at -10 dBFS; harmonics relative to the tone) ==\n");
-    for (int s : { (int) LeadVocal, (int) Bass, (int) Drums, (int) FullMix })
-        for (double f : { 60.0, 1000.0 })
+        std::printf ("  %s\n", sourceName (s));
+        for (int t = 0; t < kTools; ++t)
         {
-            Params p = flat (s); p.warmth = 1;
-            const Run r = runSine (p, f, -10, 1.0, sr);
-            const double h1 = toneAmp (r.L, r.L.size() / 2, f, sr), h2 = toneAmp (r.L, r.L.size() / 2, 2 * f, sr), h3 = toneAmp (r.L, r.L.size() / 2, 3 * f, sr);
-            std::printf ("  %-10s %5.0f Hz: 2nd %6.1f dB (%.2f%%)   3rd %6.1f dB (%.2f%%)\n", sourceName (s), f, dB (h2 / h1), 100 * h2 / h1, dB (h3 / h1), 100 * h3 / h1);
-        }
-
-    std::printf ("\n== 4. Even Out: steady gain reduction for a 1 kHz tone (knob at 5 and at 10) and timing ==\n");
-    for (int s = 0; s < kNumSources; ++s)
-    {
-        std::printf ("  %-10s", sourceName (s));
-        for (float kn : { 0.5f, 1.0f })
-        {
-            Params p = flat (s); p.evenOut = kn;
-            std::printf ("  knob %2.0f:", kn * 10);
-            for (double in : { -30.0, -20.0, -10.0, 0.0 })
+            const auto& ts = toolSpec (s, t);
+            char res[200] = "";
+            switch (ts.kind)
             {
-                const Run r = runSine (p, 1000, in, 4.0, sr);
-                std::printf (" %+5.1f", dB (toneAmp (r.L, r.L.size() * 3 / 4, 1000, sr)) - in);
+                case Kind::Eq:
+                {
+                    int len = 0;
+                    for (const auto& b : ts.band)
+                        if (b.kind != None)
+                            len += std::snprintf (res + len, sizeof res - (size_t) len, "%s%+.1f dB @ %.0f Hz", len ? ", " : "",
+                                                  gainAt (one (s, t, 1.0f), b.kind == HighShelf ? std::min (16000.0, b.hz * 1.5) : (b.kind == LowShelf ? b.hz * 0.6 : b.hz)), b.kind == HighShelf ? std::min (16000.0, b.hz * 1.5) : (b.kind == LowShelf ? b.hz * 0.6 : b.hz));
+                    break;
+                }
+                case Kind::LowCut: case Kind::Gate: case Kind::DynLow:
+                    std::snprintf (res, sizeof res, "40 Hz %+.1f dB, 1 kHz %+.1f dB", gainAt (one (s, t, 1.0f), 40, sr, -6), gainAt (one (s, t, 1.0f), 1000, sr, -6)); break;
+                case Kind::Comp: case Kind::Parallel:
+                    std::snprintf (res, sizeof res, "tone at -30: %+.1f dB, at -10: %+.1f dB, at 0: %+.1f dB", gainAt (one (s, t, 1.0f), 1000, sr, -30), gainAt (one (s, t, 1.0f), 1000, sr, -10), gainAt (one (s, t, 1.0f), 1000, sr, 0)); break;
+                case Kind::DeEss:
+                    std::snprintf (res, sizeof res, "loud S band %+.1f dB, 300 Hz %+.1f dB", gainAt (one (s, t, 1.0f), ts.p[0], sr, -14), gainAt (one (s, t, 1.0f), 300, sr, -14)); break;
+                case Kind::DynHigh:
+                    std::snprintf (res, sizeof res, "loud 9 kHz %+.1f dB, 1 kHz %+.1f dB", gainAt (one (s, t, 1.0f), 9000, sr, -8), gainAt (one (s, t, 1.0f), 1000, sr, -8)); break;
+                case Kind::Saturate:
+                {
+                    const double f = ts.p[1] > 0 ? 300.0 : (ts.p[2] > 0 ? 60.0 : 220.0);
+                    const Run r = runSine (one (s, t, 1.0f), f, -10, 1.0, sr);
+                    const double h1 = toneAmp (r.L, r.L.size() / 2, f, sr), h2 = toneAmp (r.L, r.L.size() / 2, 2 * f, sr), h3 = toneAmp (r.L, r.L.size() / 2, 3 * f, sr);
+                    std::snprintf (res, sizeof res, "%.0f Hz at -10: 2nd %.1f dB, 3rd %.1f dB", f, dB (h2 / h1), dB (h3 / h1)); break;
+                }
+                default:
+                {
+                    // level change on a burst of noise, plus what is left 300 ms after it stops
+                    ChannelEngine e; e.prepare (sr); e.setParams (one (s, t, 1.0f));
+                    std::vector<float> L (48000, 0.0f), R (48000, 0.0f), in (48000, 0.0f);
+                    for (size_t i = 0; i < 24000; ++i) { in[i] = L[i] = R[i] = 0.2f * u (rng); }
+                    for (size_t pos = 0; pos < L.size(); pos += 480) e.process (L.data() + pos, R.data() + pos, 480);
+                    double di = 0, dout = 0, side = 0, tail = 0;
+                    for (size_t i = 12000; i < 24000; ++i) { di += (double) in[i] * in[i]; dout += (double) L[i] * L[i]; side += 0.25 * (double) (L[i] - R[i]) * (L[i] - R[i]); }
+                    for (size_t i = 38400; i < 48000; ++i) tail += (double) L[i] * L[i];
+                    std::snprintf (res, sizeof res, "level %+.1f dB, side %.1f dB, tail after 300 ms %.1f dB", 10 * std::log10 (dout / di), 10 * std::log10 (side / di + 1e-12), 10 * std::log10 (tail / di * 1.25 + 1e-12));
+                }
             }
+            std::printf ("    %-10s %s\n", ts.name, res);
         }
-        // attack / release: step from -40 to -8 dBFS and back
-        Params p = flat (s); p.evenOut = 1;
-        ChannelEngine e; e.prepare (sr); e.setParams (p);
-        const size_t n = (size_t) (6 * sr); std::vector<float> L (n), R (n);
-        for (size_t i = 0; i < n; ++i) { const double a = (i > (size_t) sr && i < (size_t) (3 * sr)) ? 0.4 : 0.01; L[i] = R[i] = (float) (a * std::sin (2 * PI * 1000 * (double) i / sr)); }
-        for (size_t pos = 0; pos < n; pos += 256) e.process (L.data() + pos, R.data() + pos, 256 <= n - pos ? 256 : (int) (n - pos));
-        const auto envAt = [&] (double t) { float m = 0; for (size_t i = (size_t) (t * sr); i < (size_t) (t * sr) + 96; ++i) m = std::max (m, std::abs (L[i])); return (double) m; };
-        const double first = envAt (1.0005), settled = envAt (2.9), quiet0 = envAt (0.9), quietEnd = envAt (5.9);
-        double ta = 0, tr = 0;
-        for (double t = 1.0005; t < 2.9; t += 0.0005) if (envAt (t) < settled + (first - settled) * 0.37) { ta = (t - 1.0) * 1000; break; }
-        (void) quietEnd;
-        for (double t = 3.002; t < 5.9; t += 0.002) if (envAt (t) > quiet0 * 0.794) { tr = (t - 3.0) * 1000; break; }   // back within 2 dB
-        std::printf ("   attack ~%3.0f ms, recovered in ~%4.0f ms\n", ta, tr);
-    }
-    std::printf ("  (columns per knob setting: change in level for inputs of -30, -20, -10, 0 dBFS)\n");
-
-    std::printf ("\n== 5. De-esser (Lead Vocal, Clean Up full) ==\n");
-    {
-        Params p = flat (LeadVocal); p.cleanUp = 1;
-        std::printf ("  harsh 6.8 kHz tone alone:           %+5.1f dB\n", gainAt (p, 6800, sr, -20) );
-        std::printf ("  300 Hz tone alone (body):           %+5.1f dB\n", gainAt (p, 300, sr, -20));
-        Run r = runSine (p, 300, -12, 0.6, sr, 6800, -30);
-        std::printf ("  vowel-like (300 Hz loud + 6.8k low): 6.8k changes by %+5.1f dB\n", dB (toneAmp (r.L, r.L.size() / 2, 6800, sr)) + 30);
-        r = runSine (p, 300, -30, 0.6, sr, 6800, -14);
-        std::printf ("  S-like (6.8k loud + 300 Hz low):     6.8k changes by %+5.1f dB, 300 Hz by %+5.1f dB\n",
-                     dB (toneAmp (r.L, r.L.size() / 2, 6800, sr)) + 14, dB (toneAmp (r.L, r.L.size() / 2, 300, sr)) + 30);
-    }
-
-    std::printf ("\n== 6. Safety limiter (1 kHz tone pushed past full scale) ==\n");
-    for (double in : { -6.0, 0.0, 6.0, 12.0 })
-    {
-        Params p = flat (FullMix); p.limiter = true;
-        const Run r = runSine (p, 1000, in, 2.0, sr);
-        float pk = 0; for (float v : r.L) pk = std::max (pk, std::abs (v));
-        const double h1 = toneAmp (r.L, r.L.size() / 2, 1000, sr), h3 = toneAmp (r.L, r.L.size() / 2, 3000, sr);
-        const bool ok = pk <= 0.8911f; fails += ! ok;
-        std::printf ("  in %+5.1f dBFS -> peak %+5.2f dBFS, steady %+5.2f dBFS, 3rd harmonic %5.1f dB %s\n", in, dB (pk), dB (h1), dB (h3 / h1), ok ? "" : "FAIL");
-    }
-
-    std::printf ("\n== 7. All knobs down: is it out of circuit? ==\n");
-    {
-        std::mt19937 rng (5); std::uniform_real_distribution<float> u (-0.25f, 0.25f);
-        ChannelEngine e; e.prepare (sr); Params p = flat (Pastor); p.limiter = true; e.setParams (p);
-        std::vector<float> in (48000), L, R; for (auto& v : in) v = u (rng);
-        L = in; R = in;
-        for (size_t pos = 0; pos < L.size(); pos += 256) e.process (L.data() + pos, R.data() + pos, (int) std::min<size_t> (256, L.size() - pos));
-        double err = 0, ref = 0; for (size_t i = 0; i < L.size(); ++i) { err += (double) (L[i] - in[i]) * (L[i] - in[i]); ref += (double) in[i] * in[i]; }
-        const double d = 10 * std::log10 (std::max (err / ref, 1e-20));
-        const bool ok = d < -90; fails += ! ok;
-        std::printf ("  difference between output and input: %.0f dB %s\n", d, ok ? "(bit-transparent to well below audibility)" : "FAIL");
-    }
-
-    std::printf ("\n== 8. Space: reverb level under the dry signal at knob 5, and ducking ==\n");
-    for (int s = 0; s < kNumSources; ++s)
-    {
-        std::mt19937 rng (9); std::uniform_real_distribution<float> u (-0.2f, 0.2f);
-        Params p = flat (s); p.space = 0.5f;
-        ChannelEngine e; e.prepare (sr); e.setParams (p);
-        const size_t n = (size_t) (4 * sr), burst = (size_t) (2 * sr); std::vector<float> L (n, 0.0f), R (n, 0.0f), dry (n, 0.0f);
-        for (size_t i = 0; i < burst; ++i) { dry[i] = L[i] = u (rng); R[i] = u (rng); }
-        for (size_t pos = 0; pos < n; pos += 256) e.process (L.data() + pos, R.data() + pos, (int) std::min<size_t> (256, n - pos));
-        double d = 0, w = 0, tail = 0;
-        for (size_t i = burst / 2; i < burst; ++i) { d += (double) dry[i] * dry[i]; w += (double) (L[i] - dry[i]) * (L[i] - dry[i]); }
-        for (size_t i = burst + 2400; i < burst + 12000; ++i) tail += (double) L[i] * L[i];
-        std::printf ("  %-10s %-9s %.1f s  wet %+5.1f dB under dry while playing, tail right after: %+5.1f dB\n", sourceName (s),
-                     fm::modeName (sourceCfg (s).reverbMode), describe (p).revSeconds, 10 * std::log10 (w / d), 10 * std::log10 (tail / 9600 / (d / (burst / 2))));
     }
 
     std::printf ("\n== 9. Processing load (everything on, 21-band EQ, 48 kHz stereo) ==\n");
     {
         std::mt19937 rng (1); std::uniform_real_distribution<float> u (-0.3f, 0.3f);
-        Params p; p.source = LeadVocal; p.cleanUp = p.warmth = p.clarity = p.evenOut = p.space = 1; p.eqMode = 2; for (auto& g : p.eqGain) g = 6;
+        Params p; p.source = LeadVocal; for (int t = 0; t < kTools; ++t) p.tool[LeadVocal][t] = 1; p.eqMode = 2; for (auto& g : p.eqGain) g = 6;
         ChannelEngine e; e.prepare (sr); e.setParams (p);
         std::vector<float> L (480), R (480);
         const auto t0 = std::chrono::steady_clock::now();

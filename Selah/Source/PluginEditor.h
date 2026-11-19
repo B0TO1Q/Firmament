@@ -77,7 +77,7 @@ private:
     hw::Look look;
 
     juce::OwnedArray<hw::SourceButton> sourceButtons;
-    juce::Slider knobs[6], revLength;
+    juce::Slider knobs[7], revLength;   // six tools for the current source, then VOLUME
     hw::ToggleSwitch advancedSwitch, limiterSwitch, eqPostSwitch, stereoSwitch;
     juce::OwnedArray<juce::Slider> eqSliders[3];
     juce::OwnedArray<hw::TextKey> bandKeys;
@@ -85,6 +85,8 @@ private:
 
     juce::OwnedArray<SliderAtt> sliderAtts;
     std::unique_ptr<ButtonAtt> limiterAtt;
+    std::unique_ptr<SliderAtt> toolAtts[sl::kTools];
+    void attachTools();
     std::unique_ptr<juce::ParameterAttachment> sourceAtt, eqModeAtt, eqPostAtt, widthAtt;
 
     int source = 0, eqMode = 0;

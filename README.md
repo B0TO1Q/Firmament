@@ -23,25 +23,28 @@ Church channel strip (working title). Zero added delay, so it works live in the 
 
 ![Selah interface](docs/selah-ui.png)
 
-1. Pick what is on the channel: Speaker Mic, Lead Vocal, Choir, Acoustic Guitar, Electric Guitar, Bass, Keys, Drums, Full Mix.
+1. Pick what is on the channel.
 2. Turn up only what you need. Every knob all the way down is off.
 
-| Knob | What it does | Under the hood |
-|------|--------------|----------------|
-| Clean Up | Removes rumble, hiss, harsh S sounds | 18 dB/oct low cut, soft gate with hold, band de-esser that only acts while the S band sticks out |
-| Warmth | Body and fullness | Broad low shelf, transformer-style saturation on the low end (third harmonic), a little second harmonic across the band |
-| Clarity | Less mud, more presence | Proportional-Q mud cut and presence bells plus an air shelf, frequencies picked per source |
-| Even Out | Keeps the level steady | Compressor voiced per source: leveler for speech, fast soft-knee with harmonics for vocals and drums, slow-attack bus glue for the full mix; two-stage release; low end kept out of the detector on bass, drums and mix |
-| Space | Room sound | Firmament reverb (16-line network), mode and length per source, filtered send, ducks under speech and lead vocal |
-| Volume | Final loudness | Output gain, then a two-stage safety limiter (smooth leveling plus soft clip) that holds -1 dBFS with no look-ahead |
+Each source has its own six tools, and remembers its own settings:
 
-All of it is zero-latency. Bells are matched to the analogue curve near the top of the range, so 10-20 kHz moves keep their shape at 44.1/48 kHz.
+| Source | Tools |
+|--------|-------|
+| Speaker Mic | Room Noise, Boom, Clarity, Sibilance, Leveler, Ambience |
+| Lead Vocal | Clean, Sibilance, Sparkle, Control, Double, Plate |
+| Choir | Rumble, Mud, Clarity, Blend, Width, Hall |
+| Acoustic Guitar | Boom, Piezo Fix, Pick, Sparkle, Squash, Room |
+| Electric Guitar | Gate, Fizz, Mids, Drive, Wide, Echo |
+| Bass | Sub, Mud, Growl, String, Squash, Punch |
+| Keys | Mud, Warmth, Sparkle, Width, Level, Hall |
+| Drums | Thump, Crack, Cymbals, Punch, Smash, Room |
+| Full Mix | Low End, Warmth, Clarity, Glue, Width, Loudness |
 
-`Tests/selah_measure.cpp` prints bench numbers (EQ accuracy, harmonics, compressor curves and timing, de-esser, limiter, reverb levels, CPU). Every build is also checked with pluginval at strictness 8.
+VOLUME, the safety limiter (TOO LOUD light), Mono/Stereo and the graphic EQ are shared. Tools always run in signal order (clean-up, tone, dynamics, space), whatever their place on the panel.
 
 Underneath is a graphic EQ: 7, 14 or 21 bands (+/-12 dB each), a switch to place it before or after the channel processing, and a FLAT key.
 
-The ADVANCED switch opens a drawer showing the real numbers behind each knob, plus Reverb Length and the Safety Limiter switch.
+The ADVANCED switch opens a drawer showing the real numbers behind each tool, plus Reverb Length and the Safety Limiter switch.
 
 # STARDUST
 
